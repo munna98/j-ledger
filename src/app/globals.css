@@ -1,26 +1,163 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ==========================================================================
+   Base Theme Variables
+   ========================================================================== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  
+  /* Accent: Default Sapphire Blue */
+  --accent-primary: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-light: #eff6ff;
+  --accent-text: #1d4ed8;
+  --accent-ring: rgba(37, 99, 235, 0.2);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  --background: #090d16;
+  --foreground: #f1f5f9;
+  
+  --card: #0f1623;
+  --card-foreground: #f1f5f9;
+  
+  --muted: #162032;
+  --muted-foreground: #94a3b8;
+  
+  --border: #1e293b;
+  --input: #1e293b;
+  
+  --accent-primary: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-light: rgba(59, 130, 246, 0.15);
+  --accent-text: #93c5fd;
+  --accent-ring: rgba(59, 130, 246, 0.3);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Accent: Emerald Ledger */
+[data-accent="emerald"] {
+  --accent-primary: #059669;
+  --accent-hover: #047857;
+  --accent-light: #ecfdf5;
+  --accent-text: #047857;
+  --accent-ring: rgba(5, 150, 105, 0.2);
+}
+
+.dark[data-accent="emerald"],
+[data-accent="emerald"] .dark,
+.dark [data-accent="emerald"] {
+  --accent-primary: #10b981;
+  --accent-hover: #34d399;
+  --accent-light: rgba(16, 185, 129, 0.15);
+  --accent-text: #6ee7b7;
+  --accent-ring: rgba(16, 185, 129, 0.3);
+}
+
+/* Accent: Modern Violet / Tech */
+[data-accent="violet"] {
+  --accent-primary: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-light: #eef2ff;
+  --accent-text: #4338ca;
+  --accent-ring: rgba(99, 102, 241, 0.2);
+}
+
+.dark[data-accent="violet"],
+[data-accent="violet"] .dark,
+.dark [data-accent="violet"] {
+  --accent-primary: #818cf8;
+  --accent-hover: #a5b4fc;
+  --accent-light: rgba(129, 140, 248, 0.15);
+  --accent-text: #c7d2fe;
+  --accent-ring: rgba(129, 140, 248, 0.3);
+}
+
+/* ==========================================================================
+   Base Elements & Typography
+   ========================================================================== */
+* {
+  border-color: var(--border);
+}
+
+html {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
+}
+
+/* Tabular numbers for financial precision */
+.font-mono,
+[data-tabular-nums="true"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Smooth Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+/* Modern Card Glow & Transitions */
+.stat-card-gradient {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.95) 100%);
+}
+
+.dark .stat-card-gradient {
+  background: linear-gradient(135deg, rgba(22, 32, 50, 0.7) 0%, rgba(15, 22, 35, 0.9) 100%);
+}
+
+/* Print Optimization for Financial Statements */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  aside,
+  nav,
+  header,
+  button:not(.print-include),
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  .print-clean {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
 }
