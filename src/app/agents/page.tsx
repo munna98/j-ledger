@@ -10,22 +10,31 @@ import {
   FileText,
   AlertCircle,
   Phone,
+  Search,
   ArrowUpRight,
   ArrowDownLeft,
+  Scale,
+  Layers,
 } from 'lucide-react';
 import { Agent, AgentRateOverride, RateCategory, Entry } from '@/types';
 import { agentRepo, rateCategoryRepo, entryRepo } from '@/lib/repo';
 import { formatNumber } from '@/lib/format';
-import { calculateAgentBalance, getSlabRangeLabel } from '@/lib/accounting';
+import { calculateAgentBalance, getSlabRangeLabel, round2 } from '@/lib/accounting';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
+import { StatCard } from '@/components/ui/stat-card';
+import { Button } from '@/components/ui/button';
 
 export default function AgentsPage() {
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [categories, setCategories] = React.useState<RateCategory[]>([]);
   const [entries, setEntries] = React.useState<Entry[]>([]);
   const [loading, setLoading] = React.useState(true);
+
+  // Search and Balance Filter
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [balanceFilter, setBalanceFilter] = React.useState<'all' | 'dr' | 'cr' | 'settled'>('all');
 
   // Form modal state
   const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -76,6 +85,51 @@ export default function AgentsPage() {
   const selectedCategory = React.useMemo(() => {
     return categories.find((c) => c.id === categoryId) || categories[0] || null;
   }, [categories, categoryId]);
+
+  // KPI Calculations across agents
+  const stats = React.useMemo(() => {
+    let totalReceivables = 0; // Dr
+    let totalPayables = 0; // Cr
+
+    for (const agent of agents) {
+      const bal = calculateAgentBalance(entries, agent.account_id);
+      if (bal > 0) {
+        totalReceivables += bal;
+      } else if (bal < 0) {
+        totalPayables += Math.abs(bal);
+      }
+    }
+
+    const netPosition = round2(totalReceivables - totalPayables);
+
+    return {
+      totalAgents: agents.length,
+      totalReceivables,
+      totalPayables,
+      netPosition,
+    };
+  }, [agents, entries]);
+
+  // Filtered agents
+  const filteredAgents = React.useMemo(() => {
+    return agents.filter((agent) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        agent.name.toLowerCase().includes(q) ||
+        (agent.phone && agent.phone.includes(q));
+
+      if (!matchesSearch) return false;
+
+      if (balanceFilter === 'all') return true;
+
+      const balance = calculateAgentBalance(entries, agent.account_id);
+      if (balanceFilter === 'dr') return balance > 0;
+      if (balanceFilter === 'cr') return balance < 0;
+      if (balanceFilter === 'settled') return balance === 0;
+      return true;
+    });
+  }, [agents, entries, searchQuery, balanceFilter]);
 
   const openCreateModal = () => {
     setEditingAgent(null);
@@ -189,71 +243,167 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Users className="h-6 w-6 text-blue-600" />
-            Agents
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+              <Users className="h-6 w-6" />
+            </div>
+            Agents & Ledgers
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Manage agents, custom slab rates, and view live ledger balances.
+            Agent profiles, custom rate overrides, opening balances, and live receivables tracking.
           </p>
         </div>
-        <button
+        <Button
           onClick={openCreateModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors shadow-xs cursor-pointer self-start sm:self-auto"
+          className="self-start sm:self-auto"
         >
           <Plus className="h-4 w-4" />
           <span>New Agent</span>
-        </button>
+        </Button>
+      </div>
+
+      {/* KPI Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Total Receivables (Dr)"
+          value={formatNumber(stats.totalReceivables)}
+          icon={ArrowUpRight}
+          variant="amber"
+        />
+        <StatCard
+          title="Total Payables (Cr)"
+          value={formatNumber(stats.totalPayables)}
+          icon={ArrowDownLeft}
+          variant="emerald"
+        />
+        <StatCard
+          title="Net Book Balance"
+          value={formatNumber(Math.abs(stats.netPosition))}
+          icon={Scale}
+          variant="blue"
+        />
+        <StatCard
+          title="Registered Agents"
+          value={stats.totalAgents}
+          icon={Users}
+          variant="slate"
+        />
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#0e1422] p-3 rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by agent name or phone number..."
+            className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-500/20"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-lg border border-slate-200/60 dark:border-slate-800">
+          {(
+            [
+              { id: 'all', label: 'All Agents' },
+              { id: 'dr', label: 'Owes Us (Dr)' },
+              { id: 'cr', label: 'Advances (Cr)' },
+              { id: 'settled', label: 'Settled' },
+            ] as const
+          ).map((filter) => (
+            <button
+              key={filter.id}
+              onClick={() => setBalanceFilter(filter.id)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                balanceFilter === filter.id
+                  ? 'bg-white dark:bg-[#0e1422] text-slate-900 dark:text-white shadow-2xs font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-slate-500">Loading agents...</div>
+        <div className="text-center py-20 bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 text-slate-500">
+          <div className="animate-spin h-6 w-6 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-3" />
+          <p className="text-sm font-medium">Loading agents...</p>
+        </div>
       ) : agents.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 p-8">
-          <Users className="h-10 w-10 text-slate-400 mx-auto mb-3" />
+        <div className="text-center py-16 bg-white dark:bg-[#0e1422] rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-8 shadow-2xs">
+          <Users className="h-12 w-12 text-slate-400 mx-auto mb-3 opacity-60" />
           <h3 className="text-base font-semibold text-slate-900 dark:text-white">No Agents Found</h3>
-          <p className="text-sm text-slate-500 mt-1 mb-4">Add your first agent to start recording transactions.</p>
-          <button
+          <p className="text-sm text-slate-500 mt-1 mb-5 max-w-sm mx-auto">
+            Add your first agent to start recording transactions and generating ledger statements.
+          </p>
+          <Button
             onClick={openCreateModal}
-            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
           >
-            Create Agent
-          </button>
+            <Plus className="h-4 w-4" />
+            <span>New Agent</span>
+          </Button>
+        </div>
+      ) : filteredAgents.length === 0 ? (
+        <div className="text-center py-16 bg-white dark:bg-[#0e1422] rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-8 shadow-2xs">
+          <Users className="h-12 w-12 text-slate-400 mx-auto mb-3 opacity-60" />
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+            {searchQuery || balanceFilter !== 'all' ? 'No matching agents found' : 'No Agents'}
+          </h3>
+          <p className="text-sm text-slate-500 mt-1 mb-5 max-w-sm mx-auto">
+            Try adjusting your search criteria or balance filter.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSearchQuery('');
+              setBalanceFilter('all');
+            }}
+          >
+            Clear Filters
+          </Button>
         </div>
       ) : (
-        <div>
+        <div className="space-y-4">
           {/* Desktop Table View */}
-          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+          <div className="hidden md:block bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-2xs">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+              <thead className="bg-slate-50/80 dark:bg-slate-900/60 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200/80 dark:border-slate-800/80">
                 <tr>
                   <th className="px-5 py-3.5">Agent Name</th>
-                  <th className="px-5 py-3.5">Phone</th>
-                  <th className="px-5 py-3.5">Rate Category</th>
-                  <th className="px-5 py-3.5 text-right">Current Balance</th>
+                  <th className="px-5 py-3.5">Contact Phone</th>
+                  <th className="px-5 py-3.5">Pricing Tier</th>
+                  <th className="px-5 py-3.5 text-right">Current Ledger Balance</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {agents.map((agent) => {
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {filteredAgents.map((agent) => {
                   const cat = categories.find((c) => c.id === agent.rate_category_id);
                   const balance = calculateAgentBalance(entries, agent.account_id);
                   const isDr = balance > 0;
                   const isCr = balance < 0;
 
                   return (
-                    <tr key={agent.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                    <tr key={agent.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
                       <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">
-                        {agent.name}
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-8 w-8 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0">
+                            {agent.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span>{agent.name}</span>
+                        </div>
                       </td>
                       <td className="px-5 py-4 text-slate-600 dark:text-slate-400">
                         {agent.phone ? (
-                          <span className="flex items-center gap-1.5 font-mono text-xs">
-                            <Phone className="h-3.5 w-3.5 text-slate-400" />
+                          <span className="inline-flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            <Phone className="h-3 w-3 text-slate-400" />
                             {agent.phone}
                           </span>
                         ) : (
@@ -261,47 +411,53 @@ export default function AgentsPage() {
                         )}
                       </td>
                       <td className="px-5 py-4">
-                        <Badge variant="outline" className="font-medium">
-                          {cat?.name || 'Standard'}
-                        </Badge>
-                        {agent.rate_overrides && agent.rate_overrides.length > 0 && (
-                          <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
-                            ({agent.rate_overrides.length} custom {agent.rate_overrides.length === 1 ? 'rate' : 'rates'})
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="font-medium">
+                            <Layers className="h-3 w-3 mr-1 text-slate-400" />
+                            {cat?.name || 'Standard'}
+                          </Badge>
+                          {agent.rate_overrides && agent.rate_overrides.length > 0 && (
+                            <span className="text-xs text-purple-600 dark:text-purple-400 font-semibold bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-full border border-purple-200/60 dark:border-purple-800/60">
+                              {agent.rate_overrides.length} custom {agent.rate_overrides.length === 1 ? 'slab' : 'slabs'}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <div className="inline-flex items-center gap-1.5 font-mono font-semibold text-base">
-                          {formatNumber(Math.abs(balance))}
+                        <div className="inline-flex items-center gap-2 font-mono font-bold text-base">
+                          <span className={isDr ? 'text-amber-600 dark:text-amber-400' : isCr ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}>
+                            {formatNumber(Math.abs(balance))}
+                          </span>
                           {isDr && (
-                            <Badge variant="info" className="ml-1 text-[11px] font-bold">
-                              Dr (Owes us)
+                            <Badge variant="warning" dot className="text-[11px] font-bold">
+                              Dr (Owes Us)
                             </Badge>
                           )}
                           {isCr && (
-                            <Badge variant="warning" className="ml-1 text-[11px] font-bold">
-                              Cr (Owed)
+                            <Badge variant="success" dot className="text-[11px] font-bold">
+                              Cr (Advance)
                             </Badge>
                           )}
                           {!isDr && !isCr && (
-                            <Badge variant="default" className="ml-1 text-[11px]">
-                              Settled
+                            <Badge variant="neutral" className="text-[11px]">
+                              0.00 Settled
                             </Badge>
                           )}
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1.5">
                           <Link
                             href={`/statement?agent_id=${agent.id}`}
-                            className="p-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-900/60 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/50 text-xs font-semibold transition-colors"
                             title="View Statement"
                           >
-                            <FileText className="h-4 w-4" />
+                            <FileText className="h-3.5 w-3.5" />
+                            <span>Statement</span>
                           </Link>
                           <button
                             onClick={() => openEditModal(agent)}
-                            className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                             title="Edit Agent"
                           >
                             <Edit2 className="h-4 w-4" />
@@ -311,7 +467,7 @@ export default function AgentsPage() {
                               setDeleteTarget(agent);
                               setDeleteError(null);
                             }}
-                            className="p-1.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
                             title="Delete Agent"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -327,7 +483,7 @@ export default function AgentsPage() {
 
           {/* Mobile Stacked Cards View */}
           <div className="md:hidden space-y-3">
-            {agents.map((agent) => {
+            {filteredAgents.map((agent) => {
               const cat = categories.find((c) => c.id === agent.rate_category_id);
               const balance = calculateAgentBalance(entries, agent.account_id);
               const isDr = balance > 0;
@@ -336,55 +492,64 @@ export default function AgentsPage() {
               return (
                 <div
                   key={agent.id}
-                  className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs"
+                  className="bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 shadow-2xs space-y-3"
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="font-bold text-base text-slate-900 dark:text-white">{agent.name}</h3>
-                      {agent.phone && (
-                        <p className="text-xs text-slate-500 font-mono mt-0.5">{agent.phone}</p>
-                      )}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-9 w-9 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-sm shrink-0">
+                        {agent.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-base text-slate-900 dark:text-white">{agent.name}</h3>
+                        {agent.phone && (
+                          <p className="text-xs text-slate-500 font-mono flex items-center gap-1 mt-0.5">
+                            <Phone className="h-3 w-3" />
+                            {agent.phone}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <Badge variant="outline" className="text-xs">
                       {cat?.name || 'Standard'}
                     </Badge>
                   </div>
 
-                  <div className="my-3 py-2 px-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between">
-                    <span className="text-xs text-slate-500 font-medium">Balance</span>
+                  <div className="py-2.5 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Current Balance</span>
                     <div className="font-mono font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                      {formatNumber(Math.abs(balance))}
-                      {isDr && <Badge variant="info" className="text-[10px]">Dr</Badge>}
-                      {isCr && <Badge variant="warning" className="text-[10px]">Cr</Badge>}
-                      {!isDr && !isCr && <Badge variant="default" className="text-[10px]">0.00</Badge>}
+                      <span>{formatNumber(Math.abs(balance))}</span>
+                      {isDr && <Badge variant="warning" dot className="text-[10px]">Dr</Badge>}
+                      {isCr && <Badge variant="success" dot className="text-[10px]">Cr</Badge>}
+                      {!isDr && !isCr && <Badge variant="neutral" className="text-[10px]">0.00</Badge>}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <Link
                       href={`/statement?agent_id=${agent.id}`}
-                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-blue-600 flex items-center gap-1"
+                      className="px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-xs font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1.5"
                     >
                       <FileText className="h-3.5 w-3.5" />
-                      Statement
+                      View Statement
                     </Link>
-                    <button
-                      onClick={() => openEditModal(agent)}
-                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setDeleteTarget(agent);
-                        setDeleteError(null);
-                      }}
-                      className="px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900 text-xs font-medium text-rose-600 flex items-center gap-1"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => openEditModal(agent)}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDeleteTarget(agent);
+                          setDeleteError(null);
+                        }}
+                        className="p-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 text-rose-600"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -397,12 +562,12 @@ export default function AgentsPage() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent
           maxWidth="max-w-2xl"
-          title={editingAgent ? 'Edit Agent' : 'New Agent'}
-          description="Configure agent details, rate category slabs, and optional opening balance."
+          title={editingAgent ? 'Edit Agent Profile' : 'New Agent Registration'}
+          description="Configure agent credentials, rate category slabs, and optional opening balance."
         >
           <form onSubmit={handleFormSubmit} className="space-y-4">
             {formError && (
-              <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-sm flex items-start gap-2">
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-sm flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                 <span>{formError}</span>
               </div>
@@ -410,7 +575,7 @@ export default function AgentsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Agent Name *
                 </label>
                 <input
@@ -418,13 +583,13 @@ export default function AgentsPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Ravi"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. Ravi Kumar"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Phone (Optional)
                 </label>
                 <input
@@ -432,23 +597,23 @@ export default function AgentsPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="e.g. 9876543210"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">
-                Rate Category *
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                Default Rate Category *
               </label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
               >
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.slabs.length} slabs)
+                    {c.name} ({c.slabs.length} slab tiers)
                   </option>
                 ))}
               </select>
@@ -457,19 +622,19 @@ export default function AgentsPage() {
             {/* Slabs with Agent Overrides */}
             {selectedCategory && (
               <div className="pt-2">
-                <label className="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1.5">
-                  Category Slabs & Optional Agent Rates
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                  Category Slabs & Custom Agent Rates
                 </label>
-                <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs">
                   <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-800/80 text-xs text-slate-500 uppercase">
+                    <thead className="bg-slate-50 dark:bg-slate-900/60 text-xs text-slate-500 uppercase font-semibold">
                       <tr>
-                        <th className="px-3 py-2">Slab Range</th>
-                        <th className="px-3 py-2">Standard Rate</th>
-                        <th className="px-3 py-2 w-36">Agent Rate</th>
+                        <th className="px-3.5 py-2.5">Volume Slab</th>
+                        <th className="px-3.5 py-2.5 text-right">Standard Rate</th>
+                        <th className="px-3.5 py-2.5 w-36 text-right">Agent Rate</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                       {selectedCategory.slabs
                         .sort((a, b) => a.from_qty - b.from_qty)
                         .map((slab, i, arr) => {
@@ -477,20 +642,20 @@ export default function AgentsPage() {
                           const label = getSlabRangeLabel(slab, nextSlab);
                           return (
                             <tr key={slab.id}>
-                              <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-200">
+                              <td className="px-3.5 py-2 font-medium text-slate-800 dark:text-slate-200">
                                 {label}
                               </td>
-                              <td className="px-3 py-2 font-mono text-slate-600 dark:text-slate-400">
+                              <td className="px-3.5 py-2 text-right font-mono text-slate-500 dark:text-slate-400">
                                 {formatNumber(slab.rate)}
                               </td>
-                              <td className="px-3 py-2">
+                              <td className="px-3.5 py-2">
                                 <input
                                   type="number"
                                   step="0.01"
                                   placeholder={String(slab.rate)}
                                   value={overrides[slab.id] || ''}
                                   onChange={(e) => handleOverrideChange(slab.id, e.target.value)}
-                                  className="w-full px-2 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs font-mono text-right"
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs font-mono text-right focus:ring-1 focus:ring-purple-500"
                                 />
                               </td>
                             </tr>
@@ -499,17 +664,17 @@ export default function AgentsPage() {
                     </tbody>
                   </table>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Leave 'Agent Rate' empty to use the standard category rate.
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  Leave 'Agent Rate' empty to use standard category rates. Specify custom rates only for exceptional pricing.
                 </p>
               </div>
             )}
 
             {/* Opening Balance (Only shown when creating new agent) */}
             {!editingAgent && (
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-                <label className="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1.5">
-                  Opening Balance (Optional)
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                  Initial Opening Balance (Optional)
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-1">
@@ -520,14 +685,14 @@ export default function AgentsPage() {
                       value={obAmount}
                       onChange={(e) => setObAmount(e.target.value)}
                       placeholder="0.00"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono focus:ring-2 focus:ring-purple-500/20"
                     />
                   </div>
                   <div className="sm:col-span-1">
                     <select
                       value={obType}
                       onChange={(e) => setObType(e.target.value as 'dr' | 'cr')}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20"
                     >
                       <option value="dr">Owes Us (Dr)</option>
                       <option value="cr">We Owe Agent (Cr)</option>
@@ -538,12 +703,12 @@ export default function AgentsPage() {
                       type="date"
                       value={obDate}
                       onChange={(e) => setObDate(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20"
                     />
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Automatically posts a balanced entry between Agent A/c and Opening Balance A/c.
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  Posts a double-entry journal between the Agent Account and Opening Balance Equity Account.
                 </p>
               </div>
             )}
@@ -552,17 +717,16 @@ export default function AgentsPage() {
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium cursor-pointer"
+                className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium cursor-pointer"
               >
                 Cancel
               </button>
-              <button
+              <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {isSubmitting ? 'Saving...' : editingAgent ? 'Update Agent' : 'Create Agent'}
-              </button>
+              </Button>
             </div>
           </form>
         </DialogContent>
@@ -576,7 +740,7 @@ export default function AgentsPage() {
         description={
           deleteError
             ? deleteError
-            : `Are you sure you want to delete '${deleteTarget?.name}'? Note: Agents with existing transactions cannot be deleted.`
+            : `Are you sure you want to delete '${deleteTarget?.name}'? Note: Agents with existing ledger transactions cannot be deleted.`
         }
         isLoading={isDeleting}
         onConfirm={handleDeleteConfirm}
