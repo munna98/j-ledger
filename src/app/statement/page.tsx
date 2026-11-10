@@ -362,7 +362,7 @@ function StatementContent() {
             />
             <StatCard
               title="Closing Balance"
-              value={formatNumber(statement.closingBalance.amount)}
+              value={`${formatNumber(statement.closingBalance.amount)}${statement.closingBalance.type ? ` ${statement.closingBalance.type}` : ''}`}
               icon={DollarSign}
               variant={statement.closingBalance.type === 'Dr' ? 'amber' : 'emerald'}
               badge={statement.closingBalance.type || 'Settled'}

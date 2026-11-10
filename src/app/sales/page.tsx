@@ -988,14 +988,9 @@ export default function SalesPage() {
 
             {/* Calculated Amount Banner */}
             <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                  Total Transaction Amount
-                </span>
-                <span className="text-xs text-slate-400">
-                  {typeof saleQty === 'number' && saleQty > 0 ? `${saleQty} units` : '0 units'} × {typeof saleRate === 'number' && saleRate > 0 ? formatNumber(saleRate) : '0.00'}
-                </span>
-              </div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Total Transaction Amount
+              </span>
               <span className="font-mono text-2xl font-bold text-slate-900 dark:text-white">
                 {formatNumber(
                   (typeof saleQty === 'number' ? saleQty : 0) *
