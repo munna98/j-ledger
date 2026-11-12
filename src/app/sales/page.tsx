@@ -999,7 +999,7 @@ export default function SalesPage() {
               </span>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200/80 dark:border-slate-800/80">
+            <div className="sticky bottom-0 bg-white dark:bg-slate-900 flex justify-end gap-3 pt-3 pb-1 -mx-2 px-2 border-t border-slate-200/80 dark:border-slate-800/80">
               <button
                 type="button"
                 onClick={() => setIsSaleModalOpen(false)}
@@ -1171,7 +1171,7 @@ export default function SalesPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <div className="sticky bottom-0 bg-white dark:bg-slate-900 flex justify-end gap-3 pt-3 pb-1 -mx-2 px-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setCancelTargetSale(null)}
@@ -1255,7 +1255,7 @@ export default function SalesPage() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <div className="sticky bottom-0 bg-white dark:bg-slate-900 flex justify-end gap-3 pt-3 pb-1 -mx-2 px-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setEditingCancel(null)}

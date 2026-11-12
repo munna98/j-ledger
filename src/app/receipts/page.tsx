@@ -653,7 +653,7 @@ export default function ReceiptsPage() {
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div className="sticky bottom-0 bg-white dark:bg-slate-900 flex justify-end gap-3 pt-3 pb-1 -mx-2 px-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}

@@ -630,52 +630,83 @@ export default function AgentsPage() {
 
             {/* Slabs with Agent Overrides */}
             {selectedCategory && (
-              <div className="pt-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                  Category Slabs & Custom Agent Rates
-                </label>
-                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-900/60 text-xs text-slate-500 uppercase font-semibold">
-                      <tr>
-                        <th className="px-3.5 py-2.5">Volume Slab</th>
-                        <th className="px-3.5 py-2.5 text-right">Standard Rate</th>
-                        <th className="px-3.5 py-2.5 w-36 text-right">Agent Rate</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                      {selectedCategory.slabs
-                        .sort((a, b) => a.from_qty - b.from_qty)
-                        .map((slab, i, arr) => {
-                          const nextSlab = arr[i + 1];
-                          const label = getSlabRangeLabel(slab, nextSlab);
-                          return (
-                            <tr key={slab.id}>
-                              <td className="px-3.5 py-2 font-medium text-slate-800 dark:text-slate-200">
-                                {label}
-                              </td>
-                              <td className="px-3.5 py-2 text-right font-mono text-slate-500 dark:text-slate-400">
-                                {formatNumber(slab.rate)}
-                              </td>
-                              <td className="px-3.5 py-2">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder={String(slab.rate)}
-                                  value={overrides[slab.id] || ''}
-                                  onChange={(e) => handleOverrideChange(slab.id, e.target.value)}
-                                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs font-mono text-right focus:ring-1 focus:ring-purple-500"
-                                />
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1.5">
-                  Leave 'Agent Rate' empty to use standard category rates. Specify custom rates only for exceptional pricing.
-                </p>
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50/50 dark:bg-slate-900/50">
+                <button
+                  type="button"
+                  onClick={() => setShowSlabCustomization((prev) => !prev)}
+                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                      Category Slabs & Custom Rates
+                    </span>
+                    {activeOverrideCount > 0 ? (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                        {activeOverrideCount} custom override{activeOverrideCount > 1 ? 's' : ''}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        Standard rates ({selectedCategory.slabs.length} slabs)
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-purple-600 dark:text-purple-400 font-medium shrink-0 ml-2">
+                    <span>{showSlabCustomization ? 'Hide' : 'Customize'}</span>
+                    <ChevronDown
+                      className={cn(
+                        'h-4 w-4 transition-transform duration-200',
+                        showSlabCustomization && 'rotate-180'
+                      )}
+                    />
+                  </div>
+                </button>
+
+                {showSlabCustomization && (
+                  <div className="p-3.5 pt-0 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800 mt-3">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 dark:bg-slate-900/80 sticky top-0 text-xs text-slate-500 uppercase font-semibold border-b border-slate-200 dark:border-slate-800">
+                          <tr>
+                            <th className="px-3.5 py-2">Volume Slab</th>
+                            <th className="px-3.5 py-2 text-right">Standard Rate</th>
+                            <th className="px-3.5 py-2 w-36 text-right">Agent Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                          {selectedCategory.slabs
+                            .sort((a, b) => a.from_qty - b.from_qty)
+                            .map((slab, i, arr) => {
+                              const nextSlab = arr[i + 1];
+                              const label = getSlabRangeLabel(slab, nextSlab);
+                              return (
+                                <tr key={slab.id}>
+                                  <td className="px-3.5 py-2 font-medium text-slate-800 dark:text-slate-200">
+                                    {label}
+                                  </td>
+                                  <td className="px-3.5 py-2 text-right font-mono text-slate-500 dark:text-slate-400">
+                                    {formatNumber(slab.rate)}
+                                  </td>
+                                  <td className="px-3.5 py-2">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      placeholder={String(slab.rate)}
+                                      value={overrides[slab.id] || ''}
+                                      onChange={(e) => handleOverrideChange(slab.id, e.target.value)}
+                                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs font-mono text-right focus:ring-1 focus:ring-purple-500"
+                                    />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">
+                      Leave &apos;Agent Rate&apos; empty to use standard category rates. Specify custom rates only for exceptional pricing.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -722,7 +753,7 @@ export default function AgentsPage() {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div className="sticky bottom-0 bg-white dark:bg-slate-900 flex justify-end gap-3 pt-3 pb-1 -mx-2 px-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
