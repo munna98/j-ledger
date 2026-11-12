@@ -294,19 +294,19 @@ export function DialogContent({
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in-0 duration-200" />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
         <DialogPrimitive.Content
           ref={contentRef}
           onKeyDown={onKeyDown}
           onOpenAutoFocus={onOpenAutoFocus}
           className={cn(
-            'relative w-full bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 duration-200 my-8 focus:outline-hidden',
+            'relative w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 duration-200 focus:outline-hidden my-auto max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3.5rem)] flex flex-col overflow-hidden',
             maxWidth,
             className
           )}
         >
           {title && (
-            <div className="mb-4 pr-6">
+            <div className="shrink-0 px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800/80 pr-12">
               <DialogPrimitive.Title className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {title}
               </DialogPrimitive.Title>
@@ -317,8 +317,10 @@ export function DialogContent({
               )}
             </div>
           )}
-          {children}
-          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-hidden">
+          <div className={cn('overflow-y-auto flex-1 min-h-0 px-6 py-5', !title && 'pt-6')}>
+            {children}
+          </div>
+          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-hidden z-10">
             <X className="h-5 w-5" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>

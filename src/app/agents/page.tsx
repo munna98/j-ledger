@@ -15,6 +15,7 @@ import {
   ArrowDownLeft,
   Scale,
   Layers,
+  ChevronDown,
 } from 'lucide-react';
 import { Agent, AgentRateOverride, RateCategory, Entry } from '@/types';
 import { agentRepo, rateCategoryRepo, entryRepo } from '@/lib/repo';
@@ -25,6 +26,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function AgentsPage() {
   const [agents, setAgents] = React.useState<Agent[]>([]);
@@ -43,6 +45,7 @@ export default function AgentsPage() {
   const [phone, setPhone] = React.useState('');
   const [categoryId, setCategoryId] = React.useState('');
   const [overrides, setOverrides] = React.useState<Record<string, string>>({});
+  const [showSlabCustomization, setShowSlabCustomization] = React.useState(false);
 
   // Opening balance fields (only for creation)
   const [obAmount, setObAmount] = React.useState('');
@@ -131,12 +134,17 @@ export default function AgentsPage() {
     });
   }, [agents, entries, searchQuery, balanceFilter]);
 
+  const activeOverrideCount = React.useMemo(() => {
+    return Object.values(overrides).filter((v) => v !== '' && v !== undefined).length;
+  }, [overrides]);
+
   const openCreateModal = () => {
     setEditingAgent(null);
     setName('');
     setPhone('');
     setCategoryId(categories[0]?.id || '');
     setOverrides({});
+    setShowSlabCustomization(false);
     setObAmount('');
     setObType('dr');
     setObDate(new Date().toISOString().split('T')[0]);
@@ -156,6 +164,7 @@ export default function AgentsPage() {
       }
     }
     setOverrides(existingOverrides);
+    setShowSlabCustomization(Object.keys(existingOverrides).length > 0);
     setFormError(null);
     setIsFormOpen(true);
   };
