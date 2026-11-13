@@ -6,7 +6,7 @@ import {
 } from '@/types';
 import { CreateAgentDTO, IAgentRepo, UpdateAgentDTO } from '../types';
 import { storageClient } from './storage';
-import { buildOpeningBalanceEntries } from '@/lib/accounting';
+import { buildOpeningBalanceEntries, round2 } from '@/lib/accounting';
 
 export class LocalStorageAgentRepo implements IAgentRepo {
   async getAll(): Promise<Agent[]> {
@@ -36,6 +36,14 @@ export class LocalStorageAgentRepo implements IAgentRepo {
 
     const entries = storageClient.getEntries();
     return entries.some((e) => e.account_id === agent.account_id);
+  }
+
+  async getOpeningBalance(agentId: string): Promise<Transaction | null> {
+    const transactions = storageClient.getTransactions();
+    const obTx = transactions.find(
+      (t) => t.type === 'opening_balance' && t.opening_balance_details?.agent_id === agentId
+    );
+    return obTx || null;
   }
 
   async create(dto: CreateAgentDTO): Promise<Agent> {
@@ -142,9 +150,66 @@ export class LocalStorageAgentRepo implements IAgentRepo {
 
     const nextAgents = list.map((a) => (a.id === id ? updated : a));
 
+    let nextTransactions = storageClient.getTransactions();
+    let nextEntries = storageClient.getEntries();
+
+    if (dto.opening_balance !== undefined) {
+      const existingObTxs = nextTransactions.filter(
+        (t) => t.type === 'opening_balance' && t.opening_balance_details?.agent_id === id
+      );
+      const existingObTxIds = new Set(existingObTxs.map((t) => t.id));
+      const newAmount = dto.opening_balance ? round2(dto.opening_balance.amount) : 0;
+
+      if (dto.opening_balance && newAmount > 0) {
+        const obDate = dto.opening_balance.date || (existingObTxs[0]?.date ?? now.split('T')[0]);
+        const obBalanceType = dto.opening_balance.balance_type;
+        const obTxId = existingObTxs[0]?.id || `tx_ob_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        const obCreatedAt = existingObTxs[0]?.created_at || now;
+
+        const { entries: obEntries, amount } = buildOpeningBalanceEntries({
+          transaction_id: obTxId,
+          date: obDate,
+          agent_account_id: existing.account_id,
+          amount: newAmount,
+          balance_type: obBalanceType,
+          created_at: obCreatedAt,
+          updated_at: now,
+        });
+
+        const obTransaction: Transaction = {
+          id: obTxId,
+          type: 'opening_balance',
+          date: obDate,
+          created_at: obCreatedAt,
+          updated_at: now,
+          opening_balance_details: {
+            agent_id: id,
+            amount,
+            balance_type: obBalanceType,
+          },
+        };
+
+        // Remove old OB transactions and entries
+        nextTransactions = nextTransactions.filter((t) => !existingObTxIds.has(t.id));
+        nextEntries = nextEntries.filter((e) => !existingObTxIds.has(e.transaction_id));
+
+        // Add the updated/created OB transaction and its entries
+        nextTransactions = [obTransaction, ...nextTransactions];
+        nextEntries = [...nextEntries, ...obEntries];
+      } else {
+        // Amount is 0 or null -> remove existing OB transactions and their entries
+        if (existingObTxIds.size > 0) {
+          nextTransactions = nextTransactions.filter((t) => !existingObTxIds.has(t.id));
+          nextEntries = nextEntries.filter((e) => !existingObTxIds.has(e.transaction_id));
+        }
+      }
+    }
+
     storageClient.commitBatch({
       agents: nextAgents,
       accounts: nextAccounts,
+      transactions: nextTransactions,
+      entries: nextEntries,
     });
 
     return updated;

@@ -152,7 +152,7 @@ export default function AgentsPage() {
     setIsFormOpen(true);
   };
 
-  const openEditModal = (agent: Agent) => {
+  const openEditModal = async (agent: Agent) => {
     setEditingAgent(agent);
     setName(agent.name);
     setPhone(agent.phone || '');
@@ -165,6 +165,25 @@ export default function AgentsPage() {
     }
     setOverrides(existingOverrides);
     setShowSlabCustomization(Object.keys(existingOverrides).length > 0);
+
+    // Fetch existing opening balance for this agent
+    try {
+      const obTx = await agentRepo.getOpeningBalance(agent.id);
+      if (obTx && obTx.opening_balance_details) {
+        setObAmount(String(obTx.opening_balance_details.amount));
+        setObType(obTx.opening_balance_details.balance_type);
+        setObDate(obTx.date || new Date().toISOString().split('T')[0]);
+      } else {
+        setObAmount('');
+        setObType('dr');
+        setObDate(agent.created_at ? agent.created_at.split('T')[0] : new Date().toISOString().split('T')[0]);
+      }
+    } catch {
+      setObAmount('');
+      setObType('dr');
+      setObDate(new Date().toISOString().split('T')[0]);
+    }
+
     setFormError(null);
     setIsFormOpen(true);
   };
@@ -199,6 +218,12 @@ export default function AgentsPage() {
       }
     }
 
+    const openingBalanceAmount = obAmount ? parseFloat(obAmount) : 0;
+    if (isNaN(openingBalanceAmount) || openingBalanceAmount < 0) {
+      setFormError('Opening balance amount cannot be negative');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -208,9 +233,13 @@ export default function AgentsPage() {
           phone: phone.trim() || undefined,
           rate_category_id: categoryId,
           rate_overrides: rateOverrides,
+          opening_balance: {
+            amount: openingBalanceAmount,
+            balance_type: obType,
+            date: obDate || new Date().toISOString().split('T')[0],
+          },
         });
       } else {
-        const openingBalanceAmount = obAmount ? parseFloat(obAmount) : 0;
         await agentRepo.create({
           name: name.trim(),
           phone: phone.trim() || undefined,
@@ -710,48 +739,55 @@ export default function AgentsPage() {
               </div>
             )}
 
-            {/* Opening Balance (Only shown when creating new agent) */}
-            {!editingAgent && (
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                  Initial Opening Balance (Optional)
+            {/* Opening Balance */}
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {editingAgent ? 'Opening Balance' : 'Initial Opening Balance (Optional)'}
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-1">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={obAmount}
-                      onChange={(e) => setObAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono focus:ring-2 focus:ring-purple-500/20"
-                    />
-                  </div>
-                  <div className="sm:col-span-1">
-                    <select
-                      value={obType}
-                      onChange={(e) => setObType(e.target.value as 'dr' | 'cr')}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20"
-                    >
-                      <option value="dr">Owes Us (Dr)</option>
-                      <option value="cr">We Owe Agent (Cr)</option>
-                    </select>
-                  </div>
-                  <div className="sm:col-span-1">
-                    <input
-                      type="date"
-                      value={obDate}
-                      onChange={(e) => setObDate(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20"
-                    />
-                  </div>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1.5">
-                  Posts a double-entry journal between the Agent Account and Opening Balance Equity Account.
-                </p>
+                {editingAgent && (
+                  <span className="text-[11px] text-slate-400">
+                    Set amount to 0 or blank to clear
+                  </span>
+                )}
               </div>
-            )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-1">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={obAmount}
+                    onChange={(e) => setObAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono focus:ring-2 focus:ring-purple-500/20"
+                  />
+                </div>
+                <div className="sm:col-span-1">
+                  <select
+                    value={obType}
+                    onChange={(e) => setObType(e.target.value as 'dr' | 'cr')}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20"
+                  >
+                    <option value="dr">Owes Us (Dr)</option>
+                    <option value="cr">We Owe Agent (Cr)</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-1">
+                  <input
+                    type="date"
+                    value={obDate}
+                    onChange={(e) => setObDate(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                {editingAgent
+                  ? 'Posts or updates the double-entry journal between the Agent Account and Opening Balance Equity Account.'
+                  : 'Posts a double-entry journal between the Agent Account and Opening Balance Equity Account.'}
+              </p>
+            </div>
 
             <div className="sticky bottom-0 bg-white dark:bg-slate-900 flex justify-end gap-3 pt-3 pb-1 -mx-2 px-2 border-t border-slate-200 dark:border-slate-800">
               <button

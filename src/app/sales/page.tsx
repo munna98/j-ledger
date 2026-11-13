@@ -993,8 +993,11 @@ export default function SalesPage() {
               </span>
               <span className="font-mono text-2xl font-bold text-slate-900 dark:text-white">
                 {formatNumber(
-                  (typeof saleQty === 'number' ? saleQty : 0) *
-                    (typeof saleRate === 'number' ? saleRate : 0)
+                  round2(
+                    ((typeof saleQty === 'number' ? saleQty : 0) *
+                      (typeof saleRate === 'number' ? saleRate : 0)) /
+                      100
+                  )
                 )}
               </span>
             </div>
@@ -1161,12 +1164,16 @@ export default function SalesPage() {
                     Cancel Credit Amount
                   </div>
                   <div className="text-[11px] text-amber-700/80 dark:text-amber-400">
-                    (Qty × Sale Rate: {formatNumber(cancelTargetSale.sale_details.rate)})
+                    Sale Rate: {formatNumber(cancelTargetSale.sale_details.rate)}
                   </div>
                 </div>
                 <div className="font-mono text-xl font-bold text-amber-900 dark:text-amber-100">
                   {formatNumber(
-                    (typeof cancelQty === 'number' ? cancelQty : 0) * cancelTargetSale.sale_details.rate
+                    round2(
+                      ((typeof cancelQty === 'number' ? cancelQty : 0) *
+                        cancelTargetSale.sale_details.rate) /
+                        100
+                    )
                   )}
                 </div>
               </div>

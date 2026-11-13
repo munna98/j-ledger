@@ -365,7 +365,6 @@ function StatementContent() {
               value={`${formatNumber(statement.closingBalance.amount)}${statement.closingBalance.type ? ` ${statement.closingBalance.type}` : ''}`}
               icon={DollarSign}
               variant={statement.closingBalance.type === 'Dr' ? 'amber' : 'emerald'}
-              badge={statement.closingBalance.type || 'Settled'}
             />
           </div>
 

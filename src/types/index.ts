@@ -49,7 +49,7 @@ export interface SaleCancelPayload {
   agent_id: string;
   qty: number;
   rate: number; // Sale's current rate when created/recalculated
-  amount: number; // qty * rate
+  amount: number; // (qty * rate) / 100
   reason?: string;
 }
 

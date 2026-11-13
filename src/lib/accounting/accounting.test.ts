@@ -26,7 +26,7 @@ describe('Accounting Pure Functions & Posting Logic', () => {
     updated_at: '2026-01-01T00:00:00.000Z',
   };
 
-  it('Example 1: Sale creates balanced entries (Dr Ravi 11,445 | Cr Sales 11,445)', () => {
+  it('Example 1: Sale creates balanced entries (Dr Ravi 114.45 | Cr Sales 114.45)', () => {
     const { entries, amount } = buildSaleEntries({
       transaction_id: 'tx_sale_1',
       date: '2026-01-10',
@@ -36,7 +36,7 @@ describe('Accounting Pure Functions & Posting Logic', () => {
       rate: 381.5,
     });
 
-    expect(amount).toBe(11445);
+    expect(amount).toBe(114.45);
     expect(entries).toHaveLength(2);
     expect(validateBalancedEntries(entries)).toBe(true);
 
@@ -44,9 +44,9 @@ describe('Accounting Pure Functions & Posting Logic', () => {
     const crEntry = entries.find((e) => e.credit > 0);
 
     expect(drEntry?.account_id).toBe(raviAccountId);
-    expect(drEntry?.debit).toBe(11445);
+    expect(drEntry?.debit).toBe(114.45);
     expect(crEntry?.account_id).toBe(SYSTEM_ACCOUNTS.SALES);
-    expect(crEntry?.credit).toBe(11445);
+    expect(crEntry?.credit).toBe(114.45);
   });
 
   it('Example 2: Receipt creates balanced entries (Dr Bank 5,000 | Cr Ravi 5,000)', () => {
@@ -72,7 +72,7 @@ describe('Accounting Pure Functions & Posting Logic', () => {
     expect(crEntry?.credit).toBe(5000);
   });
 
-  it('Example 3: Partial cancel of sale creates balanced entries (Dr Sales 3,815 | Cr Ravi 3,815)', () => {
+  it('Example 3: Partial cancel of sale creates balanced entries (Dr Sales 38.15 | Cr Ravi 38.15)', () => {
     const { entries, amount } = buildSaleCancelEntries({
       transaction_id: 'tx_cancel_1',
       sale_id: 'tx_sale_1',
@@ -83,7 +83,7 @@ describe('Accounting Pure Functions & Posting Logic', () => {
       reason: 'Damaged packaging returned',
     });
 
-    expect(amount).toBe(3815);
+    expect(amount).toBe(38.15);
     expect(entries).toHaveLength(2);
     expect(validateBalancedEntries(entries)).toBe(true);
 
@@ -91,9 +91,9 @@ describe('Accounting Pure Functions & Posting Logic', () => {
     const crEntry = entries.find((e) => e.credit > 0);
 
     expect(drEntry?.account_id).toBe(SYSTEM_ACCOUNTS.SALES);
-    expect(drEntry?.debit).toBe(3815);
+    expect(drEntry?.debit).toBe(38.15);
     expect(crEntry?.account_id).toBe(raviAccountId);
-    expect(crEntry?.credit).toBe(3815);
+    expect(crEntry?.credit).toBe(38.15);
   });
 
   it('Example 4: Opening balance creates balanced entries for Owes Us (Dr) and Agent Owed (Cr)', () => {
@@ -135,10 +135,10 @@ describe('Accounting Pure Functions & Posting Logic', () => {
       rate: 381.5,
       created_at: '2026-01-10T10:00:00.000Z',
     });
-    expect(initial.amount).toBe(11445);
+    expect(initial.amount).toBe(114.45);
     expect(validateBalancedEntries(initial.entries)).toBe(true);
 
-    // Edit sale: revised to 35 qty @ 380 = 13,300
+    // Edit sale: revised to 35 qty @ 380 = 133
     const edited = buildSaleEntries({
       transaction_id: 'tx_sale_edit', // preserves transaction_id
       date: '2026-01-10',
@@ -150,7 +150,7 @@ describe('Accounting Pure Functions & Posting Logic', () => {
       updated_at: '2026-01-11T12:00:00.000Z',
     });
 
-    expect(edited.amount).toBe(13300);
+    expect(edited.amount).toBe(133);
     expect(validateBalancedEntries(edited.entries)).toBe(true);
     expect(edited.entries[0].transaction_id).toBe('tx_sale_edit');
     expect(edited.entries[0].created_at).toBe('2026-01-10T10:00:00.000Z');
@@ -158,7 +158,7 @@ describe('Accounting Pure Functions & Posting Logic', () => {
   });
 
   it('Recalculates cancel entries when sale rate is edited', () => {
-    // When sale rate changes from 381.5 to 390, a 10 qty cancel recalculates from 3,815 to 3,900
+    // When sale rate changes from 381.5 to 390, a 10 qty cancel recalculates from 38.15 to 39.00
     const originalCancel = buildSaleCancelEntries({
       transaction_id: 'tx_cancel_1',
       sale_id: 'tx_sale_1',
@@ -167,7 +167,7 @@ describe('Accounting Pure Functions & Posting Logic', () => {
       qty: 10,
       rate: 381.5,
     });
-    expect(originalCancel.amount).toBe(3815);
+    expect(originalCancel.amount).toBe(38.15);
 
     const recalculatedCancel = buildSaleCancelEntries({
       transaction_id: 'tx_cancel_1',
@@ -177,7 +177,7 @@ describe('Accounting Pure Functions & Posting Logic', () => {
       qty: 10,
       rate: 390, // new rate from edited sale
     });
-    expect(recalculatedCancel.amount).toBe(3900);
+    expect(recalculatedCancel.amount).toBe(39);
     expect(validateBalancedEntries(recalculatedCancel.entries)).toBe(true);
   });
 

@@ -60,7 +60,7 @@ export function buildSaleEntries(params: BuildSaleParams): { entries: Entry[]; a
   const now = new Date().toISOString();
   const created_at = params.created_at || now;
   const updated_at = params.updated_at || now;
-  const amount = round2(qty * rate);
+  const amount = round2((qty * rate) / 100);
 
   const narration = `Sale - Party: ${party.trim() || 'Direct'} (Qty: ${qty} @ ${formatNumber(rate)})`;
 
@@ -162,7 +162,7 @@ export function buildSaleCancelEntries(params: BuildSaleCancelParams): { entries
   const now = new Date().toISOString();
   const created_at = params.created_at || now;
   const updated_at = params.updated_at || now;
-  const amount = round2(qty * rate);
+  const amount = round2((qty * rate) / 100);
 
   const narration = `Sale Cancel (Qty: ${qty} @ ${formatNumber(rate)})${reason ? ` - ${reason.trim()}` : ''}`;
 

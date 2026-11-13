@@ -25,6 +25,11 @@ export interface UpdateAgentDTO {
   phone?: string;
   rate_category_id: string;
   rate_overrides?: AgentRateOverride[];
+  opening_balance?: {
+    amount: number;
+    balance_type: 'dr' | 'cr';
+    date?: string;
+  } | null;
 }
 
 export interface CreateSaleDTO {
@@ -101,6 +106,7 @@ export interface IAgentRepo {
   update(id: string, dto: UpdateAgentDTO): Promise<Agent>;
   delete(id: string): Promise<void>;
   hasTransactions(agentId: string): Promise<boolean>;
+  getOpeningBalance(agentId: string): Promise<Transaction | null>;
 }
 
 export interface IEntryRepo {

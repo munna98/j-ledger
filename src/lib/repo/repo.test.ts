@@ -68,7 +68,7 @@ describe('Repository Layer with LocalStorage', () => {
       rate_category_id: standardCat.id,
     });
 
-    // 1. Sale: agent Ravi, qty 30, rate 381.5, amount 11,445
+    // 1. Sale: agent Ravi, qty 30, rate 381.5, amount (30 * 381.5) / 100 = 114.45
     const { transaction: saleTx, entries: saleEntries } = await repository.transactions.createSale({
       date: '2026-01-10',
       agent_id: ravi.id,
@@ -76,41 +76,41 @@ describe('Repository Layer with LocalStorage', () => {
       qty: 30,
       rate: 381.5,
     });
-    expect(saleTx.sale_details?.amount).toBe(11445);
+    expect(saleTx.sale_details?.amount).toBe(114.45);
     expect(validateBalancedEntries(saleEntries)).toBe(true);
 
-    // Check Ravi balance: 11,445 Dr
+    // Check Ravi balance: 114.45 Dr
     let allEntries = await repository.entries.getAll();
-    expect(calculateAgentBalance(allEntries, ravi.account_id)).toBe(11445);
+    expect(calculateAgentBalance(allEntries, ravi.account_id)).toBe(114.45);
 
-    // 2. Receipt: Ravi pays 5,000 by Bank
+    // 2. Receipt: Ravi pays 50.00 by Bank
     const { transaction: recTx, entries: recEntries } = await repository.transactions.createReceipt({
       date: '2026-01-11',
       agent_id: ravi.id,
       received_in: 'bank',
-      amount: 5000,
-      note: 'Cheque deposit',
+      amount: 50,
+      note: 'Bank deposit',
     });
-    expect(recTx.receipt_details?.amount).toBe(5000);
+    expect(recTx.receipt_details?.amount).toBe(50);
     expect(validateBalancedEntries(recEntries)).toBe(true);
 
-    // Check Ravi balance: 11,445 - 5,000 = 6,445 Dr
+    // Check Ravi balance: 114.45 - 50 = 64.45 Dr
     allEntries = await repository.entries.getAll();
-    expect(calculateAgentBalance(allEntries, ravi.account_id)).toBe(6445);
+    expect(calculateAgentBalance(allEntries, ravi.account_id)).toBe(64.45);
 
-    // 3. Partial cancel: 10 qty @ sale's rate (381.5) -> 3,815
+    // 3. Partial cancel: 10 qty @ sale's rate (381.5) -> (10 * 381.5) / 100 = 38.15
     const { transaction: cancelTx, entries: cancelEntries } = await repository.transactions.createSaleCancel({
       sale_id: saleTx.id,
       date: '2026-01-12',
       qty: 10,
       reason: 'Returned 10 qty',
     });
-    expect(cancelTx.cancel_details?.amount).toBe(3815);
+    expect(cancelTx.cancel_details?.amount).toBe(38.15);
     expect(validateBalancedEntries(cancelEntries)).toBe(true);
 
-    // Check Ravi balance: 6,445 - 3,815 = 2,630 Dr
+    // Check Ravi balance: 64.45 - 38.15 = 26.30 Dr
     allEntries = await repository.entries.getAll();
-    expect(calculateAgentBalance(allEntries, ravi.account_id)).toBe(2630);
+    expect(calculateAgentBalance(allEntries, ravi.account_id)).toBe(26.3);
   });
 
   it('Sale Rate Edit automatically recalculates linked cancels and rebuilds entries', async () => {
@@ -120,7 +120,7 @@ describe('Repository Layer with LocalStorage', () => {
       rate_category_id: categories[0].id,
     });
 
-    // Sale: 30 qty @ 381.5 = 11,445
+    // Sale: 30 qty @ 381.5 = (30 * 381.5) / 100 = 114.45
     const { transaction: saleTx } = await repository.transactions.createSale({
       date: '2026-01-10',
       agent_id: ravi.id,
@@ -129,7 +129,7 @@ describe('Repository Layer with LocalStorage', () => {
       rate: 381.5,
     });
 
-    // Cancel 10 qty @ 381.5 = 3,815
+    // Cancel 10 qty @ 381.5 = (10 * 381.5) / 100 = 38.15
     const { transaction: cancelTx } = await repository.transactions.createSaleCancel({
       sale_id: saleTx.id,
       date: '2026-01-12',
@@ -137,8 +137,8 @@ describe('Repository Layer with LocalStorage', () => {
     });
 
     // Edit sale: update rate to 400.0 (and qty stays 30)
-    // New sale amount: 30 * 400 = 12,000
-    // Cancel should recalculate to: 10 * 400 = 4,000
+    // New sale amount: (30 * 400) / 100 = 120
+    // Cancel should recalculate to: (10 * 400) / 100 = 40
     await repository.transactions.updateSale(saleTx.id, {
       date: '2026-01-10',
       agent_id: ravi.id,
@@ -150,16 +150,16 @@ describe('Repository Layer with LocalStorage', () => {
     // Verify updated cancel
     const updatedCancel = await repository.transactions.getById(cancelTx.id);
     expect(updatedCancel?.cancel_details?.rate).toBe(400);
-    expect(updatedCancel?.cancel_details?.amount).toBe(4000);
+    expect(updatedCancel?.cancel_details?.amount).toBe(40);
 
     // Verify all entries balance
     const allEntries = await repository.entries.getAll();
     const cancelEntries = allEntries.filter((e) => e.transaction_id === cancelTx.id);
     expect(validateBalancedEntries(cancelEntries)).toBe(true);
-    expect(cancelEntries.find((e) => e.debit > 0)?.debit).toBe(4000);
+    expect(cancelEntries.find((e) => e.debit > 0)?.debit).toBe(40);
 
-    // Net balance: 12,000 Dr - 4,000 Cr = 8,000 Dr
-    expect(calculateAgentBalance(allEntries, ravi.account_id)).toBe(8000);
+    // Net balance: 120 Dr - 40 Cr = 80 Dr
+    expect(calculateAgentBalance(allEntries, ravi.account_id)).toBe(80);
   });
 
   it('Blocks reducing sale qty below already cancelled qty', async () => {
@@ -244,5 +244,94 @@ describe('Repository Layer with LocalStorage', () => {
     const allEntries = await repository.entries.getAll();
     expect(allEntries.some((e) => e.transaction_id === saleTx.id)).toBe(false);
     expect(allEntries.some((e) => e.transaction_id === cancelTx.id)).toBe(false);
+  });
+
+  it('Edits opening balance in agent profile (update, add, and clear)', async () => {
+    const categories = await repository.rateCategories.getAll();
+    const standardCat = categories[0];
+
+    // 1. Create agent with opening balance of 2,500 Dr
+    const agent = await repository.agents.create({
+      name: 'Priya',
+      phone: '9123456789',
+      rate_category_id: standardCat.id,
+      opening_balance: {
+        amount: 2500,
+        balance_type: 'dr',
+        date: '2026-01-01',
+      },
+    });
+
+    let obTx = await repository.agents.getOpeningBalance(agent.id);
+    expect(obTx).not.toBeNull();
+    expect(obTx?.opening_balance_details?.amount).toBe(2500);
+    expect(obTx?.opening_balance_details?.balance_type).toBe('dr');
+    expect(obTx?.date).toBe('2026-01-01');
+
+    let entries = await repository.entries.getAll();
+    expect(calculateAgentBalance(entries, agent.account_id)).toBe(2500);
+
+    // 2. Edit agent opening balance: change to 4,000 Cr on 2026-01-05
+    await repository.agents.update(agent.id, {
+      name: 'Priya Sharma',
+      rate_category_id: standardCat.id,
+      opening_balance: {
+        amount: 4000,
+        balance_type: 'cr',
+        date: '2026-01-05',
+      },
+    });
+
+    obTx = await repository.agents.getOpeningBalance(agent.id);
+    expect(obTx).not.toBeNull();
+    expect(obTx?.opening_balance_details?.amount).toBe(4000);
+    expect(obTx?.opening_balance_details?.balance_type).toBe('cr');
+    expect(obTx?.date).toBe('2026-01-05');
+
+    entries = await repository.entries.getAll();
+    // Cr balance is represented as negative in calculateAgentBalance
+    expect(calculateAgentBalance(entries, agent.account_id)).toBe(-4000);
+
+    // Verify all OB entries are balanced
+    const agentObEntries = entries.filter((e) => e.transaction_id === obTx?.id);
+    expect(agentObEntries).toHaveLength(2);
+    expect(validateBalancedEntries(agentObEntries)).toBe(true);
+
+    // 3. Clear opening balance by setting amount to 0
+    await repository.agents.update(agent.id, {
+      name: 'Priya Sharma',
+      rate_category_id: standardCat.id,
+      opening_balance: {
+        amount: 0,
+        balance_type: 'dr',
+      },
+    });
+
+    obTx = await repository.agents.getOpeningBalance(agent.id);
+    expect(obTx).toBeNull();
+
+    entries = await repository.entries.getAll();
+    expect(calculateAgentBalance(entries, agent.account_id)).toBe(0);
+    expect(entries.some((e) => e.account_id === agent.account_id)).toBe(false);
+
+    // 4. Add opening balance to an agent who had none
+    await repository.agents.update(agent.id, {
+      name: 'Priya Sharma',
+      rate_category_id: standardCat.id,
+      opening_balance: {
+        amount: 1500,
+        balance_type: 'dr',
+        date: '2026-02-01',
+      },
+    });
+
+    obTx = await repository.agents.getOpeningBalance(agent.id);
+    expect(obTx).not.toBeNull();
+    expect(obTx?.opening_balance_details?.amount).toBe(1500);
+    expect(obTx?.opening_balance_details?.balance_type).toBe('dr');
+    expect(obTx?.date).toBe('2026-02-01');
+
+    entries = await repository.entries.getAll();
+    expect(calculateAgentBalance(entries, agent.account_id)).toBe(1500);
   });
 });
