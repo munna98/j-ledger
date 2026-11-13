@@ -84,6 +84,20 @@ export class LocalStorageTransactionRepo implements ITransactionRepo {
     const txId = `tx_sale_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const now = new Date().toISOString();
 
+    // Snapshot latest fund rate if available
+    const funds = storageClient.getFunds();
+    let fundRate: number | undefined;
+    let fundCost: number | undefined;
+    if (funds.length > 0) {
+      const sortedFunds = [...funds].sort((a, b) => {
+        const cmp = b.date.localeCompare(a.date);
+        if (cmp !== 0) return cmp;
+        return b.created_at.localeCompare(a.created_at);
+      });
+      fundRate = sortedFunds[0].rate;
+      fundCost = round2((dto.qty * fundRate) / 100);
+    }
+
     const { entries, amount } = buildSaleEntries({
       transaction_id: txId,
       date: dto.date,
@@ -107,6 +121,8 @@ export class LocalStorageTransactionRepo implements ITransactionRepo {
         qty: dto.qty,
         rate: dto.rate,
         amount,
+        fund_rate: fundRate,
+        fund_cost: fundCost,
       },
     };
 
@@ -164,6 +180,11 @@ export class LocalStorageTransactionRepo implements ITransactionRepo {
       updated_at: now,
     });
 
+    // Keep existing fund rate snapshot if present, recalculate cost with updated qty
+    const existingFundRate = existing.sale_details.fund_rate;
+    const updatedFundCost =
+      existingFundRate != null ? round2((dto.qty * existingFundRate) / 100) : existing.sale_details.fund_cost;
+
     const updatedSaleTx: Transaction = {
       ...existing,
       date: dto.date,
@@ -174,6 +195,8 @@ export class LocalStorageTransactionRepo implements ITransactionRepo {
         qty: dto.qty,
         rate: dto.rate,
         amount: newSaleAmount,
+        fund_rate: existingFundRate,
+        fund_cost: updatedFundCost,
       },
     };
 

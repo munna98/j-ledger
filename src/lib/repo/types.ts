@@ -2,6 +2,7 @@ import {
   Account,
   Agent,
   Entry,
+  FundEntry,
   RateCategory,
   Transaction,
   TransactionType,
@@ -136,11 +137,36 @@ export interface ITransactionRepo {
   deleteTransaction(id: string): Promise<void>;
 }
 
+export interface CreateFundDTO {
+  date: string;
+  qty: number;
+  rate: number;
+  note?: string;
+}
+
+export interface UpdateFundDTO {
+  date: string;
+  qty: number;
+  rate: number;
+  note?: string;
+}
+
+export interface IFundRepo {
+  getAll(): Promise<FundEntry[]>;
+  getById(id: string): Promise<FundEntry | null>;
+  create(dto: CreateFundDTO): Promise<FundEntry>;
+  update(id: string, dto: UpdateFundDTO): Promise<FundEntry>;
+  delete(id: string): Promise<void>;
+  /** Returns the rate of the most recently added fund entry, or null if none */
+  getLatestRate(): Promise<number | null>;
+}
+
 export interface IRepository {
   accounts: IAccountRepo;
   rateCategories: IRateCategoryRepo;
   agents: IAgentRepo;
   transactions: ITransactionRepo;
   entries: IEntryRepo;
+  funds: IFundRepo;
   resetAllData(): Promise<void>;
 }

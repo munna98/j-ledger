@@ -2,6 +2,7 @@ import {
   Account,
   Agent,
   Entry,
+  FundEntry,
   RateCategory,
   SYSTEM_ACCOUNTS,
   Transaction,
@@ -13,6 +14,7 @@ const STORAGE_KEYS = {
   AGENTS: 'j_ledger_agents',
   TRANSACTIONS: 'j_ledger_transactions',
   ENTRIES: 'j_ledger_entries',
+  FUNDS: 'j_ledger_funds',
 } as const;
 
 // Fallback in-memory store for SSR & unit tests
@@ -191,6 +193,20 @@ export class LocalStorageClient {
     setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries));
   }
 
+  public getFunds(): FundEntry[] {
+    const raw = getItem(STORAGE_KEYS.FUNDS);
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  public setFunds(funds: FundEntry[]): void {
+    setItem(STORAGE_KEYS.FUNDS, JSON.stringify(funds));
+  }
+
   /**
    * Atomic multi-collection commit:
    * Saves updated transactions, entries, agents or accounts in one operation.
@@ -201,6 +217,7 @@ export class LocalStorageClient {
     agents?: Agent[];
     accounts?: Account[];
     rateCategories?: RateCategory[];
+    funds?: FundEntry[];
   }): void {
     if (batch.transactions !== undefined) {
       this.setTransactions(batch.transactions);
@@ -217,6 +234,9 @@ export class LocalStorageClient {
     if (batch.rateCategories !== undefined) {
       this.setRateCategories(batch.rateCategories);
     }
+    if (batch.funds !== undefined) {
+      this.setFunds(batch.funds);
+    }
   }
 
   public resetAll(): void {
@@ -225,6 +245,7 @@ export class LocalStorageClient {
     removeItem(STORAGE_KEYS.AGENTS);
     removeItem(STORAGE_KEYS.TRANSACTIONS);
     removeItem(STORAGE_KEYS.ENTRIES);
+    removeItem(STORAGE_KEYS.FUNDS);
     memoryStore.clear();
   }
 }

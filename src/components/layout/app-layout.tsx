@@ -11,6 +11,7 @@ import {
   FileText,
   BookOpen,
   Calendar,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeSwitcher } from '@/components/ui/theme-switcher';
@@ -28,6 +29,12 @@ const NAV_ITEMS: NavItem[] = [
     href: '/sales',
     description: 'Auto-rate sales & cancellations',
     icon: ShoppingBag,
+  },
+  {
+    name: 'Fund',
+    href: '/fund',
+    description: 'Capital pool, rates & profit stats',
+    icon: Wallet,
   },
   {
     name: 'Receipts',
@@ -60,6 +67,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const getPageTitle = () => {
     if (pathname === '/sales' || pathname === '/') return 'Sales Transactions';
+    if (pathname === '/fund') return 'Fund & Profit';
     if (pathname === '/receipts') return 'Receipt Collections';
     if (pathname === '/agents') return 'Agents & Ledgers';
     if (pathname === '/rate-categories') return 'Rate Slabs & Categories';

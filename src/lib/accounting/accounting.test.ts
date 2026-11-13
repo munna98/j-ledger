@@ -10,9 +10,12 @@ import {
   resolveRate,
   getSlabRangeLabel,
   validateSlabs,
+  computeFundCost,
+  computeSaleProfit,
+  calculateFundStats,
 } from './index';
 import { formatNumber, formatDate } from '@/lib/format';
-import { SYSTEM_ACCOUNTS, RateSlab, AgentRateOverride, Agent, Entry, Transaction } from '@/types';
+import { SYSTEM_ACCOUNTS, RateSlab, AgentRateOverride, Agent, Entry, Transaction, FundEntry } from '@/types';
 
 describe('Accounting Pure Functions & Posting Logic', () => {
   const raviAccountId = 'acc_agent_ravi';
@@ -407,5 +410,102 @@ describe('Accounting Pure Functions & Posting Logic', () => {
 
     expect(statement.rows[2].type).toBe('Receipt');
     expect(statement.rows[2].particulars).toBe('Bank A/c • Cheque 123'); // Instead of Via Bank
+  });
+
+  it('Fund calculations: computeFundCost, computeSaleProfit, and calculateFundStats', () => {
+    // 1. Cost & profit formulas
+    expect(computeFundCost(30, 350)).toBe(105);
+    expect(computeSaleProfit(30, 381.5, 350)).toBe(9.45);
+
+    // 2. Fund stats with funds, sales and cancels
+    const funds: FundEntry[] = [
+      {
+        id: 'f1',
+        date: '2026-01-10',
+        qty: 100,
+        rate: 350,
+        amount: 350,
+        created_at: '2026-01-10T10:00:00.000Z',
+        updated_at: '2026-01-10T10:00:00.000Z',
+      },
+      {
+        id: 'f2',
+        date: '2026-01-11',
+        qty: 50,
+        rate: 360,
+        amount: 180,
+        created_at: '2026-01-11T10:00:00.000Z',
+        updated_at: '2026-01-11T10:00:00.000Z',
+      },
+    ];
+
+    const sales: Transaction[] = [
+      {
+        id: 's1',
+        type: 'sale',
+        date: '2026-01-10',
+        created_at: '2026-01-10T11:00:00.000Z',
+        updated_at: '2026-01-10T11:00:00.000Z',
+        sale_details: {
+          agent_id: raviAgent.id,
+          party: 'Direct',
+          qty: 30,
+          rate: 381.5,
+          amount: 114.45,
+          fund_rate: 350,
+          fund_cost: 105,
+        },
+      },
+      {
+        id: 's2_legacy',
+        type: 'sale',
+        date: '2026-01-09',
+        created_at: '2026-01-09T10:00:00.000Z',
+        updated_at: '2026-01-09T10:00:00.000Z',
+        sale_details: {
+          agent_id: raviAgent.id,
+          party: 'Old Party',
+          qty: 10,
+          rate: 400,
+          amount: 40,
+          // no fund_rate — legacy sale
+        },
+      },
+    ];
+
+    const cancels: Transaction[] = [
+      {
+        id: 'c1',
+        type: 'sale_cancel',
+        date: '2026-01-10',
+        created_at: '2026-01-10T12:00:00.000Z',
+        updated_at: '2026-01-10T12:00:00.000Z',
+        cancel_details: {
+          sale_id: 's1',
+          agent_id: raviAgent.id,
+          qty: 10,
+          rate: 381.5,
+          amount: 38.15,
+        },
+      },
+    ];
+
+    const stats = calculateFundStats(funds, sales, cancels);
+
+    // Total Funded: 350 + 180 = 530
+    expect(stats.totalFunded).toBe(530);
+
+    // s1 net qty = 30 - 10 = 20. Cost = 20 * 350 / 100 = 70.
+    // s2_legacy has no fund_rate so cost = 0.
+    expect(stats.totalFundCost).toBe(70);
+
+    // Remaining Fund = 530 - 70 = 460
+    expect(stats.remainingFund).toBe(460);
+
+    // Total Sales Revenue = (114.45 - 38.15) + 40 = 76.30 + 40 = 116.30
+    expect(stats.totalSalesRevenue).toBe(116.3);
+
+    // Total Profit = 116.30 - 70 = 46.30
+    expect(stats.totalProfit).toBe(46.3);
   });
 });

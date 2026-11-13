@@ -1,5 +1,6 @@
 import {
   Entry,
+  FundEntry,
   SYSTEM_ACCOUNTS,
   RateSlab,
   AgentRateOverride,
@@ -12,6 +13,83 @@ import { formatNumber } from '@/lib/format';
 
 export function round2(num: number): number {
   return Math.round((num + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Computes the fund cost for a sale: qty * fundRate / 100
+ */
+export function computeFundCost(qty: number, fundRate: number): number {
+  return round2((qty * fundRate) / 100);
+}
+
+/**
+ * Computes the profit for a single sale:
+ * (saleRate - fundRate) * qty / 100
+ */
+export function computeSaleProfit(qty: number, saleRate: number, fundRate: number): number {
+  return round2(((saleRate - fundRate) * qty) / 100);
+}
+
+export interface FundStats {
+  totalFunded: number;
+  totalFundCost: number;
+  remainingFund: number;
+  totalSalesRevenue: number;
+  totalProfit: number;
+}
+
+/**
+ * Calculates aggregated fund-level statistics.
+ * Sales without a fund_rate snapshot are excluded from cost/profit.
+ */
+export function calculateFundStats(
+  funds: FundEntry[],
+  sales: Transaction[],
+  cancels: Transaction[]
+): FundStats {
+  const totalFunded = round2(funds.reduce((sum, f) => sum + f.amount, 0));
+
+  let totalFundCost = 0;
+  let totalSalesRevenue = 0;
+
+  for (const sale of sales) {
+    if (!sale.sale_details) continue;
+    const { qty, rate, fund_rate, fund_cost } = sale.sale_details;
+
+    const saleCancels = cancels.filter(
+      (c) => c.cancel_details?.sale_id === sale.id
+    );
+    const cancelledQty = saleCancels.reduce(
+      (sum, c) => sum + (c.cancel_details?.qty || 0),
+      0
+    );
+    const cancelledAmount = saleCancels.reduce(
+      (sum, c) => sum + (c.cancel_details?.amount || 0),
+      0
+    );
+
+    const netQty = round2(qty - cancelledQty);
+    const netSaleAmount = round2((sale.sale_details.amount || 0) - cancelledAmount);
+    totalSalesRevenue = round2(totalSalesRevenue + netSaleAmount);
+
+    if (fund_rate != null && fund_rate > 0) {
+      const baseFundCost = fund_cost ?? computeFundCost(qty, fund_rate);
+      const cancelledFundCost = round2((cancelledQty * fund_rate) / 100);
+      const netFundCost = round2(baseFundCost - cancelledFundCost);
+      totalFundCost = round2(totalFundCost + netFundCost);
+    }
+  }
+
+  const remainingFund = round2(totalFunded - totalFundCost);
+  const totalProfit = round2(totalSalesRevenue - totalFundCost);
+
+  return {
+    totalFunded,
+    totalFundCost,
+    remainingFund,
+    totalSalesRevenue,
+    totalProfit,
+  };
 }
 
 /**

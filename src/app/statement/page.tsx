@@ -13,8 +13,11 @@ import {
   Scale,
   DollarSign,
   TrendingUp,
+  Share2,
+  Check,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { toBlob, toPng } from 'html-to-image';
 import { Agent, Entry, Transaction } from '@/types';
 import { agentRepo, entryRepo, transactionRepo } from '@/lib/repo';
 import { formatNumber, formatDate } from '@/lib/format';
@@ -35,6 +38,9 @@ function StatementContent() {
   const [toDate, setToDate] = React.useState<string>('');
   const [activePreset, setActivePreset] = React.useState<'month' | 'last30' | 'all' | 'custom'>('month');
   const [loading, setLoading] = React.useState<boolean>(true);
+  const [isSharingWhatsApp, setIsSharingWhatsApp] = React.useState<boolean>(false);
+  const [copiedNotice, setCopiedNotice] = React.useState<boolean>(false);
+  const statementCardRef = React.useRef<HTMLDivElement>(null);
 
   // Set default dates: first day of current month to today
   React.useEffect(() => {
@@ -117,7 +123,7 @@ function StatementContent() {
 
     const aoa: any[][] = [
       ['J Ledger - Agent Account Statement'],
-      [`Agent: ${selectedAgent.name}`, `Account ID: ${selectedAgent.account_id}`],
+      [`Agent: ${selectedAgent.name}`],
       [`Period: ${fromDate ? formatDate(fromDate) : 'Beginning'} to ${toDate ? formatDate(toDate) : 'Present'}`],
       [],
       ['Date', 'Type', 'Particulars', 'Qty', 'Rate', 'Debit', 'Credit', 'Balance'],
@@ -190,6 +196,86 @@ function StatementContent() {
     window.print();
   };
 
+  const handleShareWhatsApp = async () => {
+    if (!statementCardRef.current || !statement || !selectedAgent) return;
+    try {
+      setIsSharingWhatsApp(true);
+
+      const target = statementCardRef.current;
+      const cleanAgentName = selectedAgent.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const fileName = `statement_${cleanAgentName}.png`;
+
+      // Generate PNG blob
+      const blob = await toBlob(target, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+
+      if (!blob) {
+        throw new Error('Failed to capture report image');
+      }
+
+      const file = new File([blob], fileName, { type: 'image/png' });
+      const phoneDigits = (selectedAgent.phone || '').replace(/\D/g, '');
+
+      // Check if Web Share API with file sharing is supported (Mobile / Chrome / Safari / Edge)
+      if (
+        navigator.canShare &&
+        navigator.canShare({ files: [file] }) &&
+        navigator.share
+      ) {
+        await navigator.share({
+          title: `Account Statement - ${selectedAgent.name}`,
+          text: `Account Statement for ${selectedAgent.name} (Closing Balance: ${formatNumber(statement.closingBalance.amount)} ${statement.closingBalance.type})`,
+          files: [file],
+        });
+        return;
+      }
+
+      // Desktop fallback:
+      // 1. Download image file automatically
+      const dataUrl = await toPng(target, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+      const downloadLink = document.createElement('a');
+      downloadLink.download = fileName;
+      downloadLink.href = dataUrl;
+      downloadLink.click();
+
+      // 2. Try copying image to clipboard for easy paste into WhatsApp Web
+      try {
+        if (navigator.clipboard && window.ClipboardItem) {
+          const item = new ClipboardItem({ 'image/png': blob });
+          await navigator.clipboard.write([item]);
+          setCopiedNotice(true);
+          setTimeout(() => setCopiedNotice(false), 5000);
+        }
+      } catch (clipboardErr) {
+        console.warn('Clipboard write failed:', clipboardErr);
+      }
+
+      // 3. Open WhatsApp Web chat with summary caption
+      const captionText = encodeURIComponent(
+        `*Account Statement - ${selectedAgent.name}*\nPeriod: ${fromDate ? formatDate(fromDate) : 'Start'} to ${toDate ? formatDate(toDate) : 'Present'}\nClosing Balance: *${formatNumber(statement.closingBalance.amount)} ${statement.closingBalance.type}*\n\n(Report image downloaded - you can drag & drop or paste Ctrl+V into this chat)`
+      );
+      const waUrl = phoneDigits
+        ? `https://wa.me/${phoneDigits}?text=${captionText}`
+        : `https://wa.me/?text=${captionText}`;
+
+      window.open(waUrl, '_blank');
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error sharing to WhatsApp:', err);
+        alert('Could not generate report image for WhatsApp. Please try Print or Export.');
+      }
+    } finally {
+      setIsSharingWhatsApp(false);
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
       {/* Header */}
@@ -206,7 +292,17 @@ function StatementContent() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <Button
+            variant="outline"
+            onClick={handleShareWhatsApp}
+            disabled={!statement || isSharingWhatsApp}
+            title="Share Statement image on WhatsApp"
+            className="border-emerald-500/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+          >
+            <Share2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{isSharingWhatsApp ? 'Generating...' : 'WhatsApp Share'}</span>
+          </Button>
           <Button
             variant="outline"
             onClick={handlePrint}
@@ -368,8 +464,20 @@ function StatementContent() {
             />
           </div>
 
+          {copiedNotice && (
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2 animate-in fade-in">
+              <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+              <span>
+                Report image downloaded & copied to clipboard! Paste (Ctrl+V) or drag the file into your WhatsApp chat.
+              </span>
+            </div>
+          )}
+
           {/* Statement Sheet / Document Card */}
-          <div className="bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-2xs print:border-none print:shadow-none print:p-0">
+          <div
+            ref={statementCardRef}
+            className="bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-2xs print:border-none print:shadow-none print:p-0"
+          >
             {/* Statement Header Card (Printed & Displayed) */}
             <div className="p-6 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/60">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -382,10 +490,11 @@ function StatementContent() {
                   <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                     {selectedAgent.name}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                    A/C: {selectedAgent.account_id}
-                    {selectedAgent.phone && ` • Phone: ${selectedAgent.phone}`}
-                  </p>
+                  {selectedAgent.phone && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Phone: {selectedAgent.phone}
+                    </p>
+                  )}
                 </div>
 
                 <div className="text-left sm:text-right bg-white dark:bg-slate-900/90 sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-none border-slate-200 dark:border-slate-800">

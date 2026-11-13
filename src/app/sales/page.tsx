@@ -17,10 +17,10 @@ import {
   DollarSign,
   TrendingUp,
 } from 'lucide-react';
-import { Agent, RateCategory, Transaction, Entry } from '@/types';
-import { transactionRepo, agentRepo, rateCategoryRepo, entryRepo } from '@/lib/repo';
+import { Agent, RateCategory, Transaction, Entry, FundEntry } from '@/types';
+import { transactionRepo, agentRepo, rateCategoryRepo, entryRepo, fundRepo } from '@/lib/repo';
 import { formatNumber, formatDate } from '@/lib/format';
-import { calculateAgentBalance, resolveRate, round2 } from '@/lib/accounting';
+import { calculateAgentBalance, resolveRate, round2, computeSaleProfit } from '@/lib/accounting';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,7 @@ export default function SalesPage() {
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [categories, setCategories] = React.useState<RateCategory[]>([]);
   const [entries, setEntries] = React.useState<Entry[]>([]);
+  const [latestFundRate, setLatestFundRate] = React.useState<number | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   // Search and Filter State
@@ -80,18 +81,20 @@ export default function SalesPage() {
   const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
-      const [allSales, allCancels, allAgents, allCats, allEntries] = await Promise.all([
+      const [allSales, allCancels, allAgents, allCats, allEntries, fundRate] = await Promise.all([
         transactionRepo.getAll({ type: 'sale' }),
         transactionRepo.getAll({ type: 'sale_cancel' }),
         agentRepo.getAll(),
         rateCategoryRepo.getAll(),
         entryRepo.getAll(),
+        fundRepo.getLatestRate(),
       ]);
       setSales(allSales);
       setCancels(allCancels);
       setAgents(allAgents);
       setCategories(allCats);
       setEntries(allEntries);
+      setLatestFundRate(fundRate);
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -152,6 +155,19 @@ export default function SalesPage() {
     const netAmount = round2(grossAmount - totalCancelledAmount);
     const netQty = round2(grossQty - totalCancelledQty);
 
+    // Calculate total net profit for sales with snapshotted fund_rate
+    let totalProfit = 0;
+    for (const s of sales) {
+      if (!s.sale_details) continue;
+      const fRate = s.sale_details.fund_rate;
+      if (fRate != null && fRate > 0) {
+        const sCancels = getCancelsForSale(s.id);
+        const cQty = sCancels.reduce((sum, c) => sum + (c.cancel_details?.qty || 0), 0);
+        const saleNetQty = round2(s.sale_details.qty - cQty);
+        totalProfit = round2(totalProfit + computeSaleProfit(saleNetQty, s.sale_details.rate, fRate));
+      }
+    }
+
     return {
       grossAmount,
       grossQty,
@@ -160,6 +176,7 @@ export default function SalesPage() {
       totalCancelledAmount,
       totalCancelledQty,
       totalSalesCount: sales.length,
+      totalProfit,
     };
   }, [sales, cancels]);
 
@@ -409,7 +426,7 @@ export default function SalesPage() {
       </div>
 
       {/* KPI Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="Gross Sales Revenue"
           value={formatNumber(stats.grossAmount)}
@@ -427,6 +444,12 @@ export default function SalesPage() {
           value={formatNumber(stats.totalCancelledAmount)}
           icon={Ban}
           variant="amber"
+        />
+        <StatCard
+          title="Net Profit"
+          value={formatNumber(stats.totalProfit)}
+          icon={TrendingUp}
+          variant={stats.totalProfit >= 0 ? 'emerald' : 'rose'}
         />
         <StatCard
           title="Total Transactions"
@@ -535,6 +558,7 @@ export default function SalesPage() {
                   <th className="px-4 py-3.5 text-right">Qty</th>
                   <th className="px-4 py-3.5 text-right">Rate</th>
                   <th className="px-4 py-3.5 text-right">Amount</th>
+                  <th className="px-4 py-3.5 text-right">Profit</th>
                   <th className="px-4 py-3.5 text-center">Status</th>
                   <th className="px-4 py-3.5 text-right">Actions</th>
                 </tr>
@@ -592,6 +616,34 @@ export default function SalesPage() {
                         <td className="px-4 py-4 text-right font-mono font-bold text-slate-900 dark:text-white">
                           {formatNumber(details.amount)}
                         </td>
+                        <td className="px-4 py-4 text-right font-mono text-xs">
+                          {details.fund_rate != null ? (
+                            <span
+                              className={`font-semibold ${
+                                computeSaleProfit(
+                                  round2(details.qty - totalCancelled),
+                                  details.rate,
+                                  details.fund_rate
+                                ) >= 0
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : 'text-rose-600 dark:text-rose-400'
+                              }`}
+                            >
+                              {formatNumber(
+                                computeSaleProfit(
+                                  round2(details.qty - totalCancelled),
+                                  details.rate,
+                                  details.fund_rate
+                                )
+                              )}
+                              <span className="block text-[10px] text-slate-400 font-normal">
+                                @ cost {details.fund_rate}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 italic">--</span>
+                          )}
+                        </td>
                         <td className="px-4 py-4 text-center">
                           {isFullyCancelled ? (
                             <Badge variant="destructive" dot>Cancelled</Badge>
@@ -635,7 +687,7 @@ export default function SalesPage() {
                       {/* Expanded Sub-table for Linked Cancels */}
                       {isExpanded && saleCancels.length > 0 && (
                         <tr className="bg-amber-50/20 dark:bg-amber-950/10">
-                          <td colSpan={8} className="p-3 pl-12 pr-6">
+                          <td colSpan={9} className="p-3 pl-12 pr-6">
                             <div className="border border-amber-200/80 dark:border-amber-900/60 rounded-xl p-3.5 bg-amber-50/50 dark:bg-amber-950/30">
                               <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-200 mb-2 flex items-center gap-1.5">
                                 <Ban className="h-3.5 w-3.5 text-amber-600" />
@@ -735,7 +787,7 @@ export default function SalesPage() {
                     )}
                   </div>
 
-                  <div className="py-2.5 px-3 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2 text-center">
+                  <div className="py-2.5 px-3 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-100 dark:border-slate-800 grid grid-cols-4 gap-2 text-center">
                     <div>
                       <div className="text-[10px] text-slate-400 uppercase font-semibold">Qty</div>
                       <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
@@ -755,6 +807,34 @@ export default function SalesPage() {
                       <div className="text-[10px] text-slate-400 uppercase font-semibold">Amount</div>
                       <div className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
                         {formatNumber(details.amount)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-slate-400 uppercase font-semibold">Profit</div>
+                      <div className="font-mono font-bold text-sm">
+                        {details.fund_rate != null ? (
+                          <span
+                            className={
+                              computeSaleProfit(
+                                round2(details.qty - totalCancelled),
+                                details.rate,
+                                details.fund_rate
+                              ) >= 0
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-rose-600 dark:text-rose-400'
+                            }
+                          >
+                            {formatNumber(
+                              computeSaleProfit(
+                                round2(details.qty - totalCancelled),
+                                details.rate,
+                                details.fund_rate
+                              )
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic">--</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -988,9 +1068,20 @@ export default function SalesPage() {
 
             {/* Calculated Amount Banner */}
             <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Total Transaction Amount
-              </span>
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                  Total Transaction Amount
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 block">
+                  {latestFundRate != null ? (
+                    <span className="text-violet-600 dark:text-violet-400 font-medium">
+                      Fund Cost Rate: {formatNumber(latestFundRate)}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 italic">No fund rate recorded</span>
+                  )}
+                </span>
+              </div>
               <span className="font-mono text-2xl font-bold text-slate-900 dark:text-white">
                 {formatNumber(
                   round2(

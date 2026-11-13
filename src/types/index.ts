@@ -35,6 +35,19 @@ export interface SalePayload {
   qty: number;
   rate: number;
   amount: number;
+  fund_rate?: number;  // snapshotted fund rate at time of sale creation
+  fund_cost?: number;  // qty × fund_rate / 100
+}
+
+export interface FundEntry {
+  id: string;
+  date: string;      // YYYY-MM-DD
+  qty: number;
+  rate: number;      // fund add rate
+  amount: number;    // qty × rate / 100
+  note?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ReceiptPayload {
