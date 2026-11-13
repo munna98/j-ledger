@@ -167,6 +167,9 @@ function StatementContent() {
       `${formatNumber(statement.closingBalance.amount)} ${statement.closingBalance.type}`.trim(),
     ]);
 
+    aoa.push([]);
+    aoa.push(['Powered by J ledger software : 8086094070']);
+
     const ws = XLSX.utils.aoa_to_sheet(aoa);
 
     // Auto-fit column widths
@@ -635,6 +638,16 @@ function StatementContent() {
                   </tr>
                 </tfoot>
               </table>
+            </div>
+
+            {/* Footer Note */}
+            <div className="px-6 py-3.5 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="font-medium tracking-wide">
+                Powered by J ledger software : <span className="font-semibold text-slate-700 dark:text-slate-300">8086094070</span>
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">
+                {formatDate(new Date().toISOString().split('T')[0])}
+              </span>
             </div>
           </div>
         </div>
