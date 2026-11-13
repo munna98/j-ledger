@@ -1,104 +1,123 @@
 'use client';
 
 import * as React from 'react';
-import { User, Session } from '@supabase/supabase-js';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
+export interface JLedgerUser {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string;
+}
+
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: JLedgerUser | null;
   loading: boolean;
   signInWithPassword: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
+const AUTH_STORAGE_KEY = 'jledger_user_session';
+
 const AuthContext = React.createContext<AuthContextType>({
   user: null,
-  session: null,
   loading: true,
   signInWithPassword: async () => ({ error: null }),
-  signUp: async () => ({ error: null }),
   signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = React.useState<User | null>(null);
-  const [session, setSession] = React.useState<Session | null>(null);
+  const [user, setUser] = React.useState<JLedgerUser | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (!isSupabaseConfigured()) {
+    try {
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.email) {
+          setUser(parsed);
+        }
+      }
+    } catch {
+      // ignore parsing error
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const supabase = getSupabase();
-
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen to auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
   const signInWithPassword = async (email: string, password: string) => {
-    try {
-      const supabase = getSupabase();
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      return { error };
-    } catch (err: any) {
-      return { error: err };
+    if (!isSupabaseConfigured()) {
+      return { error: new Error('Supabase is not configured. Add credentials in .env.local first.') };
     }
-  };
 
-  const signUp = async (email: string, password: string) => {
     try {
       const supabase = getSupabase();
-      const { error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password.trim();
+
+      // 1. First attempt secure RPC check with pgcrypto
+      const { data: rpcData, error: rpcError } = await supabase.rpc('jledger_login', {
+        p_email: cleanEmail,
+        p_password: cleanPassword,
       });
-      return { error };
+
+      if (!rpcError && rpcData && rpcData.length > 0) {
+        const loggedUser: JLedgerUser = {
+          id: rpcData[0].id,
+          email: rpcData[0].email,
+          name: rpcData[0].name || 'Jaisal',
+        };
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(loggedUser));
+        setUser(loggedUser);
+        return { error: null };
+      }
+
+      // 2. Direct table fallback if RPC function not created
+      const { data: userData, error: userError } = await supabase
+        .from('jledger_users')
+        .select('id, email, password_hash, name, role')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+
+      if (userError) {
+        return { error: new Error(`Database error: ${userError.message}`) };
+      }
+
+      if (!userData) {
+        return { error: new Error('Invalid email or password.') };
+      }
+
+      // Verify plain text match if password_hash was stored as plain text
+      if (userData.password_hash === cleanPassword) {
+        const loggedUser: JLedgerUser = {
+          id: userData.id,
+          email: userData.email,
+          name: userData.name || 'Jaisal',
+          role: userData.role || 'admin',
+        };
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(loggedUser));
+        setUser(loggedUser);
+        return { error: null };
+      }
+
+      return { error: new Error('Invalid email or password.') };
     } catch (err: any) {
-      return { error: err };
+      return { error: new Error(err.message || 'Authentication failed.') };
     }
   };
 
   const signOut = async () => {
-    try {
-      const supabase = getSupabase();
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error('Error signing out:', err);
-    }
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    setUser(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        session,
         loading,
         signInWithPassword,
-        signUp,
         signOut,
       }}
     >

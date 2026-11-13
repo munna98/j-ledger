@@ -128,7 +128,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     router.replace('/login');
   };
 
-  const userInitial = user.email ? user.email.charAt(0).toUpperCase() : 'U';
+  const userInitial = user.name
+    ? user.name.charAt(0).toUpperCase()
+    : user.email
+    ? user.email.charAt(0).toUpperCase()
+    : 'J';
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 flex flex-col md:flex-row pb-20 md:pb-0">
@@ -210,9 +214,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                  {user.email}
+                  {user.name || user.email}
                 </p>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500">Authenticated</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{user.email}</p>
               </div>
             </div>
             <button
