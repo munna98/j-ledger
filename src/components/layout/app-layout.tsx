@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   ShoppingBag,
   Receipt,
@@ -12,9 +12,12 @@ import {
   BookOpen,
   Calendar,
   Wallet,
+  LogOut,
+  User as UserIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeSwitcher } from '@/components/ui/theme-switcher';
+import { useAuth } from '@/lib/auth-context';
 
 interface NavItem {
   name: string;
@@ -64,16 +67,8 @@ const NAV_ITEMS: NavItem[] = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
-  const getPageTitle = () => {
-    if (pathname === '/sales' || pathname === '/') return 'Sales Transactions';
-    if (pathname === '/fund') return 'Fund & Profit';
-    if (pathname === '/receipts') return 'Receipt Collections';
-    if (pathname === '/agents') return 'Agents & Ledgers';
-    if (pathname === '/rate-categories') return 'Rate Slabs & Categories';
-    if (pathname === '/statement') return 'Account Statement & Ledger';
-    return 'J Ledger';
-  };
+  const router = useRouter();
+  const { user, loading, signOut } = useAuth();
 
   const [todayFormatted, setTodayFormatted] = React.useState('');
 
@@ -88,6 +83,52 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       })
     );
   }, []);
+
+  // Protect all non-login pages
+  React.useEffect(() => {
+    if (!loading && !user && pathname !== '/login') {
+      router.replace('/login');
+    }
+  }, [user, loading, pathname, router]);
+
+  // If on login page, don't show the dashboard shell
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
+  // Show clean spinner while checking authentication state
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-[#090d16] text-slate-500">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+          <span className="text-xs font-medium">Verifying authentication...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // If unauthenticated on a protected page, wait for redirect
+  if (!user) {
+    return null;
+  }
+
+  const getPageTitle = () => {
+    if (pathname === '/sales' || pathname === '/') return 'Sales Transactions';
+    if (pathname === '/fund') return 'Fund & Profit';
+    if (pathname === '/receipts') return 'Receipt Collections';
+    if (pathname === '/agents') return 'Agents & Ledgers';
+    if (pathname === '/rate-categories') return 'Rate Slabs & Categories';
+    if (pathname === '/statement') return 'Account Statement & Ledger';
+    return 'J Ledger';
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace('/login');
+  };
+
+  const userInitial = user.email ? user.email.charAt(0).toUpperCase() : 'U';
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 flex flex-col md:flex-row pb-20 md:pb-0">
@@ -160,8 +201,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Bottom Section: Theme Switcher */}
-        <div className="p-4 border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40">
+        {/* Bottom Section: User profile & Theme Switcher */}
+        <div className="p-3.5 border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 space-y-3">
+          <div className="flex items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-7 w-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                {userInitial}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  {user.email}
+                </p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">Authenticated</p>
+              </div>
+            </div>
+            <button
+              onClick={handleSignOut}
+              title="Sign Out"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
           <ThemeSwitcher />
         </div>
       </aside>
@@ -192,6 +253,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <Calendar className="h-3.5 w-3.5 text-slate-400" />
                 <span>{todayFormatted}</span>
               </div>
+
+              {/* Mobile Logout Button */}
+              <button
+                onClick={handleSignOut}
+                title="Sign Out"
+                className="md:hidden p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+
               <div className="flex items-center gap-1.5">
                 <ThemeSwitcher compact />
               </div>
