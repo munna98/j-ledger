@@ -62,9 +62,6 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             J Ledger
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Sign in to access your ledger
-          </p>
         </div>
 
         {/* Card */}
