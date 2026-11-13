@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { repository } from './index';
+import { LocalStorageRepository } from './local-storage';
 import { validateBalancedEntries, calculateAgentBalance } from '@/lib/accounting';
 import { SYSTEM_ACCOUNTS } from '@/types';
+
+const repository = new LocalStorageRepository();
 
 describe('Repository Layer with LocalStorage', () => {
   beforeEach(async () => {
