@@ -486,7 +486,7 @@ export default function FundPage() {
               <div className="p-3.5 rounded-xl bg-violet-50/60 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/50 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-600 dark:text-slate-400">
-                    Expense (0.000025 × Rate × Qty):
+                    Expense:
                   </span>
                   <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
                     {formatExpense(previewExpense)}
@@ -494,7 +494,7 @@ export default function FundPage() {
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-600 dark:text-slate-400">
-                    Total Cost (Rate + Expense):
+                    Total Cost:
                   </span>
                   <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
                     {formatExpense(previewTotalCost)}
