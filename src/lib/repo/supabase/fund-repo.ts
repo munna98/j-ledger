@@ -1,7 +1,7 @@
 import { FundEntry } from '@/types';
 import { CreateFundDTO, IFundRepo, UpdateFundDTO } from '../types';
 import { getSupabase } from '@/lib/supabase/client';
-import { round2 } from '@/lib/accounting';
+import { computeFundAmount } from '@/lib/accounting';
 
 const TABLE = 'jledger_fund_entries';
 
@@ -35,7 +35,7 @@ export class SupabaseFundRepo implements IFundRepo {
 
     const now = new Date().toISOString();
     const id = `fund_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const amount = round2((dto.qty * dto.rate) / 100);
+    const amount = computeFundAmount(dto.qty, dto.rate);
 
     const entry: FundEntry = {
       id,
@@ -64,7 +64,7 @@ export class SupabaseFundRepo implements IFundRepo {
     if (!existing) throw new Error(`Fund entry '${id}' not found`);
 
     const now = new Date().toISOString();
-    const amount = round2((dto.qty * dto.rate) / 100);
+    const amount = computeFundAmount(dto.qty, dto.rate);
 
     const updated = {
       date: dto.date,

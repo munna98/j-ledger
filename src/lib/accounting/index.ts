@@ -23,6 +23,26 @@ export function computeFundCost(qty: number, fundRate: number): number {
 }
 
 /**
+ * Computes the acquisition expense when adding fund:
+ * 0.000025 * fundRate * qty
+ */
+export function computeFundExpense(qty: number, fundRate: number): number {
+  return Math.round((0.000025 * fundRate * qty + Number.EPSILON) * 1000000) / 1000000;
+}
+
+/**
+ * Computes the total fund amount (existing total fund):
+ * expense = 0.000025 * fundRate * qty
+ * totalCost = fundRate + expense
+ * amount = (qty * totalCost) / 100
+ */
+export function computeFundAmount(qty: number, fundRate: number): number {
+  const expense = computeFundExpense(qty, fundRate);
+  const totalCost = fundRate + expense;
+  return round2((qty * totalCost) / 100);
+}
+
+/**
  * Computes the profit for a single sale:
  * (saleRate - fundRate) * qty / 100
  */

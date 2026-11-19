@@ -336,4 +336,37 @@ describe('Repository Layer with LocalStorage', () => {
     entries = await repository.entries.getAll();
     expect(calculateAgentBalance(entries, agent.account_id)).toBe(1500);
   });
+
+  it('Creates and updates fund entries with expense added to cost (0.000025 * rate * qty)', async () => {
+    // 1. Create fund: qty = 100, rate = 350
+    // Expense = 0.000025 * 350 * 100 = 0.875
+    // Total cost = 350 + 0.875 = 350.875
+    // Amount = round2((100 * 350.875) / 100) = 350.88
+    const fund1 = await repository.funds.create({
+      date: '2026-01-10',
+      qty: 100,
+      rate: 350,
+      note: 'Tranche A',
+    });
+
+    expect(fund1.id).toBeDefined();
+    expect(fund1.qty).toBe(100);
+    expect(fund1.rate).toBe(350);
+    expect(fund1.amount).toBe(350.88);
+
+    // 2. Update fund: qty = 50, rate = 360
+    // Expense = 0.000025 * 360 * 50 = 0.45
+    // Total cost = 360 + 0.45 = 360.45
+    // Amount = round2((50 * 360.45) / 100) = 180.23
+    const updated = await repository.funds.update(fund1.id, {
+      date: '2026-01-11',
+      qty: 50,
+      rate: 360,
+      note: 'Updated Tranche A',
+    });
+
+    expect(updated.qty).toBe(50);
+    expect(updated.rate).toBe(360);
+    expect(updated.amount).toBe(180.23);
+  });
 });

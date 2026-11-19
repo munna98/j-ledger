@@ -9,6 +9,20 @@ export function formatNumber(val: number | string | null | undefined): string {
 }
 
 /**
+ * Formats expense or rate numbers with up to 4 decimal places (minimum 2).
+ * Example: 0.875 -> "0.875", 0.5 -> "0.50", 350.875 -> "350.875"
+ */
+export function formatExpense(val: number | string | null | undefined): string {
+  if (val === null || val === undefined || val === '') return '0.00';
+  const num = typeof val === 'number' ? val : parseFloat(String(val));
+  if (isNaN(num)) return '0.00';
+  return num.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  });
+}
+
+/**
  * Formats a date string (YYYY-MM-DD or ISO) into dd-mm-yy format.
  * Example: "2026-11-10" -> "10-11-26"
  */

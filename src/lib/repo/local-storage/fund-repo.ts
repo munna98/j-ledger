@@ -1,7 +1,7 @@
 import { FundEntry } from '@/types';
 import { CreateFundDTO, IFundRepo, UpdateFundDTO } from '../types';
 import { storageClient } from './storage';
-import { round2 } from '@/lib/accounting';
+import { computeFundAmount } from '@/lib/accounting';
 
 export class LocalStorageFundRepo implements IFundRepo {
   async getAll(): Promise<FundEntry[]> {
@@ -25,7 +25,7 @@ export class LocalStorageFundRepo implements IFundRepo {
 
     const now = new Date().toISOString();
     const id = `fund_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const amount = round2((dto.qty * dto.rate) / 100);
+    const amount = computeFundAmount(dto.qty, dto.rate);
 
     const entry: FundEntry = {
       id,
@@ -52,7 +52,7 @@ export class LocalStorageFundRepo implements IFundRepo {
     if (!existing) throw new Error(`Fund entry '${id}' not found`);
 
     const now = new Date().toISOString();
-    const amount = round2((dto.qty * dto.rate) / 100);
+    const amount = computeFundAmount(dto.qty, dto.rate);
 
     const updated: FundEntry = {
       ...existing,

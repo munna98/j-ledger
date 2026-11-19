@@ -11,6 +11,8 @@ import {
   getSlabRangeLabel,
   validateSlabs,
   computeFundCost,
+  computeFundExpense,
+  computeFundAmount,
   computeSaleProfit,
   calculateFundStats,
 } from './index';
@@ -412,10 +414,23 @@ describe('Accounting Pure Functions & Posting Logic', () => {
     expect(statement.rows[2].particulars).toBe('Bank A/c • Cheque 123'); // Instead of Via Bank
   });
 
-  it('Fund calculations: computeFundCost, computeSaleProfit, and calculateFundStats', () => {
+  it('Fund calculations: computeFundCost, computeFundExpense, computeFundAmount, computeSaleProfit, and calculateFundStats', () => {
     // 1. Cost & profit formulas
     expect(computeFundCost(30, 350)).toBe(105);
     expect(computeSaleProfit(30, 381.5, 350)).toBe(9.45);
+
+    // 1b. Expense = 0.000025 * fund rate * qty
+    // For qty: 100, rate: 350 -> expense = 0.000025 * 350 * 100 = 0.875
+    expect(computeFundExpense(100, 350)).toBe(0.875);
+    // Total Cost = rate + expense = 350.875
+    // Amount = round2((100 * 350.875) / 100) = 350.88
+    expect(computeFundAmount(100, 350)).toBe(350.88);
+
+    // For qty: 50, rate: 360 -> expense = 0.000025 * 360 * 50 = 0.45
+    expect(computeFundExpense(50, 360)).toBe(0.45);
+    // Total Cost = 360 + 0.45 = 360.45
+    // Amount = round2((50 * 360.45) / 100) = 180.23
+    expect(computeFundAmount(50, 360)).toBe(180.23);
 
     // 2. Fund stats with funds, sales and cancels
     const funds: FundEntry[] = [
