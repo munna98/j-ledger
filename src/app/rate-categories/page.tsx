@@ -376,17 +376,12 @@ export default function RateCategoriesPage() {
                           <td className="px-3.5 py-2">
                             <input
                               type="number"
-                              min={isFirst ? 1 : 2}
-                              readOnly={isFirst}
+                              min={isFirst ? 0 : 1}
                               value={slab.from_qty}
                               onChange={(e) =>
                                 handleSlabChange(index, 'from_qty', parseInt(e.target.value) || 0)
                               }
-                              className={`w-full px-2.5 py-1.5 rounded-lg border text-sm font-mono ${
-                                isFirst
-                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 cursor-not-allowed'
-                                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100'
-                              }`}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono"
                             />
                           </td>
                           <td className="px-3.5 py-2 text-xs font-medium text-slate-600 dark:text-slate-300">

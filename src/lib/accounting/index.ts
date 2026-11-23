@@ -410,7 +410,7 @@ export function getSlabRangeLabel(slab: RateSlab, nextSlab?: RateSlab): string {
 
 /**
  * Validates rate category slabs:
- * - First slab starts at 1
+ * - First slab starts at 0 or 1
  * - from_qty strictly increases
  * - Rates are positive numbers
  */
@@ -421,8 +421,8 @@ export function validateSlabs(slabs: RateSlab[]): { valid: boolean; error?: stri
 
   const sorted = [...slabs].sort((a, b) => a.from_qty - b.from_qty);
 
-  if (sorted[0].from_qty !== 1) {
-    return { valid: false, error: 'First slab must start at quantity 1' };
+  if (sorted[0].from_qty !== 0 && sorted[0].from_qty !== 1) {
+    return { valid: false, error: 'First slab must start at quantity 0 or 1' };
   }
 
   for (let i = 0; i < sorted.length; i++) {
@@ -442,7 +442,7 @@ export function validateSlabs(slabs: RateSlab[]): { valid: boolean; error?: stri
  * Matching slab is the one with the highest from_qty <= qty.
  */
 export function findMatchingSlab(slabs: RateSlab[], qty: number): { slab?: RateSlab; index: number; nextSlab?: RateSlab } {
-  if (!slabs || slabs.length === 0 || qty < 1) {
+  if (!slabs || slabs.length === 0 || qty <= 0) {
     return { index: -1 };
   }
 

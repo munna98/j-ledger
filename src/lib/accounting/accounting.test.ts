@@ -216,6 +216,23 @@ describe('Accounting Pure Functions & Posting Logic', () => {
     const resOverride = resolveRate(slabs, overrides, 25);
     expect(resOverride.rate).toBe(379.5);
     expect(resOverride.isOverridden).toBe(true);
+
+    // Slabs starting at 0 (e.g. 0-24 @ 200, 25+ @ 190)
+    const slabsStartingAtZero: RateSlab[] = [
+      { id: 'z1', from_qty: 0, rate: 200 },
+      { id: 'z2', from_qty: 25, rate: 190 },
+    ];
+    expect(validateSlabs(slabsStartingAtZero).valid).toBe(true);
+    expect(getSlabRangeLabel(slabsStartingAtZero[0], slabsStartingAtZero[1])).toBe('0-24');
+    expect(getSlabRangeLabel(slabsStartingAtZero[1], undefined)).toBe('25+');
+
+    const resZero10 = resolveRate(slabsStartingAtZero, undefined, 10);
+    expect(resZero10.rate).toBe(200);
+    expect(resZero10.slabLabel).toBe('0-24');
+
+    const resZero25 = resolveRate(slabsStartingAtZero, undefined, 25);
+    expect(resZero25.rate).toBe(190);
+    expect(resZero25.slabLabel).toBe('25+');
   });
 
   it('Agent Statement: calculates opening balance, running balance and totals strictly from entries', () => {
