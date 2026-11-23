@@ -18,6 +18,7 @@ import { formatNumber, formatDate, formatExpense } from '@/lib/format';
 import {
   calculateFundStats,
   FundStats,
+  computeFundBase,
   computeFundExpense,
   computeFundAmount,
 } from '@/lib/accounting';
@@ -109,6 +110,14 @@ export default function FundPage() {
     setIsModalOpen(true);
   };
 
+  // Preview base fund in form (qty * rate / 100)
+  const previewBaseFund = React.useMemo(() => {
+    const q = typeof fundQty === 'number' ? fundQty : parseFloat(String(fundQty));
+    const r = typeof fundRate === 'number' ? fundRate : parseFloat(String(fundRate));
+    if (isNaN(q) || isNaN(r) || q <= 0 || r <= 0) return 0;
+    return computeFundBase(q, r);
+  }, [fundQty, fundRate]);
+
   // Preview expense in form (0.000025 * rate * qty)
   const previewExpense = React.useMemo(() => {
     const q = typeof fundQty === 'number' ? fundQty : parseFloat(String(fundQty));
@@ -117,14 +126,7 @@ export default function FundPage() {
     return computeFundExpense(q, r);
   }, [fundQty, fundRate]);
 
-  // Preview total cost in form (fund rate + expense)
-  const previewTotalCost = React.useMemo(() => {
-    const r = typeof fundRate === 'number' ? fundRate : parseFloat(String(fundRate));
-    if (isNaN(r) || r <= 0) return 0;
-    return r + previewExpense;
-  }, [fundRate, previewExpense]);
-
-  // Preview amount in form (qty * total cost / 100)
+  // Preview total cost (base fund + expense)
   const previewAmount = React.useMemo(() => {
     const q = typeof fundQty === 'number' ? fundQty : parseFloat(String(fundQty));
     const r = typeof fundRate === 'number' ? fundRate : parseFloat(String(fundRate));
@@ -213,25 +215,25 @@ export default function FundPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Funded"
-          value={formatNumber(stats.totalFunded)}
+          value={formatExpense(stats.totalFunded)}
           icon={DollarSign}
           variant="blue"
         />
         <StatCard
           title="Fund Used (Cost)"
-          value={formatNumber(stats.totalFundCost)}
+          value={formatExpense(stats.totalFundCost)}
           icon={ArrowDownRight}
           variant="amber"
         />
         <StatCard
           title="Remaining Fund"
-          value={formatNumber(stats.remainingFund)}
+          value={formatExpense(stats.remainingFund)}
           icon={PieChart}
           variant={stats.remainingFund < 0 ? 'rose' : 'emerald'}
         />
         <StatCard
           title="Total Profit"
-          value={formatNumber(stats.totalProfit)}
+          value={formatExpense(stats.totalProfit)}
           icon={TrendingUp}
           variant={stats.totalProfit >= 0 ? 'emerald' : 'rose'}
         />
@@ -312,13 +314,13 @@ export default function FundPage() {
                       {fund.qty}
                     </td>
                     <td className="px-4 py-4 text-right font-mono text-slate-700 dark:text-slate-300">
-                      <div>{formatNumber(fund.rate)}</div>
+                      <div>{formatExpense(fund.rate)}</div>
                       <div className="text-[10px] text-slate-400 font-normal">
                         +exp {formatExpense(computeFundExpense(fund.qty, fund.rate))}
                       </div>
                     </td>
                     <td className="px-4 py-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {formatNumber(fund.amount)}
+                      {formatExpense(fund.amount)}
                     </td>
                     <td className="px-4 py-4 text-slate-600 dark:text-slate-400 text-xs">
                       {fund.note || <span className="text-slate-400 italic">—</span>}
@@ -393,7 +395,7 @@ export default function FundPage() {
                   <div>
                     <div className="text-[10px] text-slate-400 uppercase font-semibold">Rate</div>
                     <div className="font-mono text-sm text-slate-900 dark:text-white">
-                      {formatNumber(fund.rate)}
+                      {formatExpense(fund.rate)}
                     </div>
                     <div className="text-[10px] text-slate-400 font-normal">
                       +exp {formatExpense(computeFundExpense(fund.qty, fund.rate))}
@@ -402,7 +404,7 @@ export default function FundPage() {
                   <div>
                     <div className="text-[10px] text-slate-400 uppercase font-semibold">Amount</div>
                     <div className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
-                      {formatNumber(fund.amount)}
+                      {formatExpense(fund.amount)}
                     </div>
                   </div>
                 </div>
@@ -486,26 +488,26 @@ export default function FundPage() {
               <div className="p-3.5 rounded-xl bg-violet-50/60 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/50 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-600 dark:text-slate-400">
+                    Base Fund:
+                  </span>
+                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                    {formatExpense(previewBaseFund)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-600 dark:text-slate-400">
                     Expense:
                   </span>
                   <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
                     {formatExpense(previewExpense)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-600 dark:text-slate-400">
-                    Total Cost:
-                  </span>
-                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                    {formatExpense(previewTotalCost)}
-                  </span>
-                </div>
                 <div className="pt-2 border-t border-violet-200/60 dark:border-violet-900/60 flex items-center justify-between">
                   <span className="text-xs font-bold text-violet-900 dark:text-violet-200">
-                    Total Fund Amount:
+                    Total Cost:
                   </span>
                   <span className="font-mono font-bold text-base text-violet-700 dark:text-violet-300">
-                    {formatNumber(previewAmount)}
+                    {formatExpense(previewAmount)}
                   </span>
                 </div>
               </div>

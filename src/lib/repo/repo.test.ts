@@ -338,26 +338,26 @@ describe('Repository Layer with LocalStorage', () => {
   });
 
   it('Creates and updates fund entries with expense added to cost (0.000025 * rate * qty)', async () => {
-    // 1. Create fund: qty = 100, rate = 350
-    // Expense = 0.000025 * 350 * 100 = 0.875
-    // Total cost = 350 + 0.875 = 350.875
-    // Amount = round2((100 * 350.875) / 100) = 350.88
+    // 1. Create fund: qty = 564.845, rate = 380.7349
+    // Base = (564.845 * 380.7349) / 100 = 2150.562
+    // Expense = 0.000025 * 380.7349 * 564.845 = 5.3764
+    // Total cost = 2150.562 + 5.3764 = 2155.9384 (not rounded to 2 decimals)
     const fund1 = await repository.funds.create({
       date: '2026-01-10',
-      qty: 100,
-      rate: 350,
+      qty: 564.845,
+      rate: 380.7349,
       note: 'Tranche A',
     });
 
     expect(fund1.id).toBeDefined();
-    expect(fund1.qty).toBe(100);
-    expect(fund1.rate).toBe(350);
-    expect(fund1.amount).toBe(350.88);
+    expect(fund1.qty).toBe(564.845);
+    expect(fund1.rate).toBe(380.7349);
+    expect(fund1.amount).toBe(2155.9384);
 
     // 2. Update fund: qty = 50, rate = 360
+    // Base = (50 * 360) / 100 = 180
     // Expense = 0.000025 * 360 * 50 = 0.45
-    // Total cost = 360 + 0.45 = 360.45
-    // Amount = round2((50 * 360.45) / 100) = 180.23
+    // Total cost = 180 + 0.45 = 180.45
     const updated = await repository.funds.update(fund1.id, {
       date: '2026-01-11',
       qty: 50,
@@ -367,6 +367,6 @@ describe('Repository Layer with LocalStorage', () => {
 
     expect(updated.qty).toBe(50);
     expect(updated.rate).toBe(360);
-    expect(updated.amount).toBe(180.23);
+    expect(updated.amount).toBe(180.45);
   });
 });

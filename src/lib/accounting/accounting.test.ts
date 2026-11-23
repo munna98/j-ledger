@@ -11,6 +11,7 @@ import {
   getSlabRangeLabel,
   validateSlabs,
   computeFundCost,
+  computeFundBase,
   computeFundExpense,
   computeFundAmount,
   computeSaleProfit,
@@ -420,17 +421,22 @@ describe('Accounting Pure Functions & Posting Logic', () => {
     expect(computeSaleProfit(30, 381.5, 350)).toBe(9.45);
 
     // 1b. Expense = 0.000025 * fund rate * qty
-    // For qty: 100, rate: 350 -> expense = 0.000025 * 350 * 100 = 0.875
-    expect(computeFundExpense(100, 350)).toBe(0.875);
-    // Total Cost = rate + expense = 350.875
-    // Amount = round2((100 * 350.875) / 100) = 350.88
-    expect(computeFundAmount(100, 350)).toBe(350.88);
+    // Base Fund = (qty * rate) / 100
+    // Total Cost = Base Fund + Expense (up to 4 decimals, no 2-decimal rounding)
+    // Example from user sheet: qty = 564.845, rate = 380.7349
+    expect(computeFundBase(564.845, 380.7349)).toBe(2150.562);
+    expect(computeFundExpense(564.845, 380.7349)).toBe(5.3764);
+    expect(computeFundAmount(564.845, 380.7349)).toBe(2155.9384);
 
-    // For qty: 50, rate: 360 -> expense = 0.000025 * 360 * 50 = 0.45
+    // For qty: 100, rate: 350 -> base = 350, expense = 0.875 -> amount = 350.875
+    expect(computeFundBase(100, 350)).toBe(350);
+    expect(computeFundExpense(100, 350)).toBe(0.875);
+    expect(computeFundAmount(100, 350)).toBe(350.875);
+
+    // For qty: 50, rate: 360 -> base = 180, expense = 0.45 -> amount = 180.45
+    expect(computeFundBase(50, 360)).toBe(180);
     expect(computeFundExpense(50, 360)).toBe(0.45);
-    // Total Cost = 360 + 0.45 = 360.45
-    // Amount = round2((50 * 360.45) / 100) = 180.23
-    expect(computeFundAmount(50, 360)).toBe(180.23);
+    expect(computeFundAmount(50, 360)).toBe(180.45);
 
     // 2. Fund stats with funds, sales and cancels
     const funds: FundEntry[] = [

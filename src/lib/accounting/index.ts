@@ -15,6 +15,10 @@ export function round2(num: number): number {
   return Math.round((num + Number.EPSILON) * 100) / 100;
 }
 
+export function round4(num: number): number {
+  return Math.round((num + Number.EPSILON) * 10000) / 10000;
+}
+
 /**
  * Computes the fund cost for a sale: qty * fundRate / 100
  */
@@ -23,23 +27,30 @@ export function computeFundCost(qty: number, fundRate: number): number {
 }
 
 /**
+ * Computes the base fund amount: (qty * fundRate) / 100
+ */
+export function computeFundBase(qty: number, fundRate: number): number {
+  return round4((qty * fundRate) / 100);
+}
+
+/**
  * Computes the acquisition expense when adding fund:
  * 0.000025 * fundRate * qty
  */
 export function computeFundExpense(qty: number, fundRate: number): number {
-  return Math.round((0.000025 * fundRate * qty + Number.EPSILON) * 1000000) / 1000000;
+  return round4(0.000025 * fundRate * qty);
 }
 
 /**
- * Computes the total fund amount (existing total fund):
+ * Computes the total fund amount (total cost):
+ * baseFund = (qty * fundRate) / 100
  * expense = 0.000025 * fundRate * qty
- * totalCost = fundRate + expense
- * amount = (qty * totalCost) / 100
+ * totalCost = baseFund + expense
  */
 export function computeFundAmount(qty: number, fundRate: number): number {
+  const baseFund = computeFundBase(qty, fundRate);
   const expense = computeFundExpense(qty, fundRate);
-  const totalCost = fundRate + expense;
-  return round2((qty * totalCost) / 100);
+  return round4(baseFund + expense);
 }
 
 /**
@@ -67,7 +78,7 @@ export function calculateFundStats(
   sales: Transaction[],
   cancels: Transaction[]
 ): FundStats {
-  const totalFunded = round2(funds.reduce((sum, f) => sum + f.amount, 0));
+  const totalFunded = round4(funds.reduce((sum, f) => sum + f.amount, 0));
 
   let totalFundCost = 0;
   let totalSalesRevenue = 0;
@@ -100,8 +111,8 @@ export function calculateFundStats(
     }
   }
 
-  const remainingFund = round2(totalFunded - totalFundCost);
-  const totalProfit = round2(totalSalesRevenue - totalFundCost);
+  const remainingFund = round4(totalFunded - totalFundCost);
+  const totalProfit = round4(totalSalesRevenue - totalFundCost);
 
   return {
     totalFunded,
