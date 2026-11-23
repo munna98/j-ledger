@@ -414,6 +414,7 @@ export default function AgentsPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50/80 dark:bg-slate-900/60 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200/80 dark:border-slate-800/80">
                 <tr>
+                  <th className="px-4 py-3.5 w-16 text-center">Sl No</th>
                   <th className="px-5 py-3.5">Agent Name</th>
                   <th className="px-5 py-3.5">Contact Phone</th>
                   <th className="px-5 py-3.5">Pricing Tier</th>
@@ -422,7 +423,7 @@ export default function AgentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                {filteredAgents.map((agent) => {
+                {filteredAgents.map((agent, index) => {
                   const cat = categories.find((c) => c.id === agent.rate_category_id);
                   const balance = calculateAgentBalance(entries, agent.account_id);
                   const isDr = balance > 0;
@@ -430,6 +431,9 @@ export default function AgentsPage() {
 
                   return (
                     <tr key={agent.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="px-4 py-4 text-center font-mono text-xs text-slate-500 dark:text-slate-400">
+                        {index + 1}
+                      </td>
                       <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">
                         <div className="flex items-center gap-2.5">
                           <div className="h-8 w-8 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0">
@@ -521,7 +525,7 @@ export default function AgentsPage() {
 
           {/* Mobile Stacked Cards View */}
           <div className="md:hidden space-y-3">
-            {filteredAgents.map((agent) => {
+            {filteredAgents.map((agent, index) => {
               const cat = categories.find((c) => c.id === agent.rate_category_id);
               const balance = calculateAgentBalance(entries, agent.account_id);
               const isDr = balance > 0;
@@ -538,7 +542,10 @@ export default function AgentsPage() {
                         {agent.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <h3 className="font-bold text-base text-slate-900 dark:text-white">{agent.name}</h3>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-mono text-slate-400">#{index + 1}</span>
+                          <h3 className="font-bold text-base text-slate-900 dark:text-white">{agent.name}</h3>
+                        </div>
                         {agent.phone && (
                           <p className="text-xs text-slate-500 font-mono flex items-center gap-1 mt-0.5">
                             <Phone className="h-3 w-3" />
