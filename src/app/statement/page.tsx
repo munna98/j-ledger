@@ -418,12 +418,12 @@ function StatementContent() {
         </div>
 
         {/* Quick range tabs */}
-        <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-          <span className="text-slate-400 font-medium">Quick Date Range:</span>
+        <div className="flex items-center gap-1.5 sm:gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs overflow-x-auto [scrollbar-width:none]">
+          <span className="hidden sm:inline text-slate-400 font-medium shrink-0 whitespace-nowrap">Quick Date Range:</span>
           <button
             type="button"
             onClick={() => setPreset('month')}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activePreset === 'month'
                 ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -431,11 +431,11 @@ function StatementContent() {
           >
             This Month
           </button>
-          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <span className="text-slate-300 dark:text-slate-700 shrink-0">•</span>
           <button
             type="button"
             onClick={() => setPreset('last7')}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activePreset === 'last7'
                 ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -443,11 +443,11 @@ function StatementContent() {
           >
             Last 7 Days
           </button>
-          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <span className="text-slate-300 dark:text-slate-700 shrink-0">•</span>
           <button
             type="button"
             onClick={() => setPreset('last30')}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activePreset === 'last30'
                 ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -455,11 +455,11 @@ function StatementContent() {
           >
             Last 30 Days
           </button>
-          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <span className="text-slate-300 dark:text-slate-700 shrink-0">•</span>
           <button
             type="button"
             onClick={() => setPreset('all')}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activePreset === 'all'
                 ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
