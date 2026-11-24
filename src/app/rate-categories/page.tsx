@@ -193,6 +193,12 @@ export default function RateCategoriesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {categories.map((cat) => {
             const sortedSlabs = [...cat.slabs].sort((a, b) => a.from_qty - b.from_qty);
+            const displaySlabs = sortedSlabs
+              .map((slab, index) => ({
+                ...slab,
+                label: getSlabRangeLabel(slab, sortedSlabs[index + 1]),
+              }))
+              .reverse();
             return (
               <div
                 key={cat.id}
@@ -245,13 +251,11 @@ export default function RateCategoriesPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                        {sortedSlabs.map((slab, index) => {
-                          const nextSlab = sortedSlabs[index + 1];
-                          const label = getSlabRangeLabel(slab, nextSlab);
+                        {displaySlabs.map((slab) => {
                           return (
                             <tr key={slab.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
                               <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">
-                                {label}
+                                {slab.label}
                               </td>
                               <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono text-xs">
                                 ≥ {slab.from_qty} units
