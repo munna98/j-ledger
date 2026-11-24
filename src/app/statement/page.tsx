@@ -637,12 +637,12 @@ function StatementContent() {
                       <div className="text-right">
                         {isDebit && (
                           <div className="font-mono font-bold text-base text-amber-600 dark:text-amber-400">
-                            - {formatNumber(row.debit)} <span className="text-xs font-semibold">Dr</span>
+                            {formatNumber(row.debit)} <span className="text-xs font-semibold">Dr</span>
                           </div>
                         )}
                         {isCredit && (
                           <div className="font-mono font-bold text-base text-emerald-600 dark:text-emerald-400">
-                            + {formatNumber(row.credit)} <span className="text-xs font-semibold">Cr</span>
+                            {formatNumber(row.credit)} <span className="text-xs font-semibold">Cr</span>
                           </div>
                         )}
                       </div>
