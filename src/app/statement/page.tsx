@@ -316,32 +316,46 @@ function StatementContent() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={handleShareWhatsApp}
             disabled={!statement || isSharingWhatsApp}
             title="Share Statement image on WhatsApp"
-            className="border-emerald-500/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+            className="flex-1 sm:flex-initial text-xs sm:text-sm px-2.5 sm:px-4 border-emerald-500/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
           >
-            <Share2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            <span>{isSharingWhatsApp ? 'Generating...' : 'WhatsApp Share'}</span>
+            <Share2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span>
+              {isSharingWhatsApp ? (
+                'Generating...'
+              ) : (
+                <>
+                  <span className="sm:hidden">WhatsApp</span>
+                  <span className="hidden sm:inline">WhatsApp Share</span>
+                </>
+              )}
+            </span>
           </Button>
           <Button
             variant="outline"
             onClick={handlePrint}
             disabled={!statement}
             title="Print Statement"
+            className="shrink-0 px-2.5 sm:px-4 text-xs sm:text-sm"
           >
-            <Printer className="h-4 w-4" />
+            <Printer className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Print</span>
           </Button>
           <Button
             onClick={handleExportExcel}
             disabled={!statement}
+            className="flex-1 sm:flex-initial text-xs sm:text-sm px-2.5 sm:px-4"
           >
-            <Download className="h-4 w-4" />
-            <span>Export Excel</span>
+            <Download className="h-4 w-4 shrink-0" />
+            <span>
+              <span className="sm:hidden">Excel</span>
+              <span className="hidden sm:inline">Export Excel</span>
+            </span>
           </Button>
         </div>
       </div>
