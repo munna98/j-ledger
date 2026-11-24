@@ -247,8 +247,16 @@ function StatementContent() {
       const file = new File([blob], fileName, { type: 'image/png' });
       const phoneDigits = (selectedAgent.phone || '').replace(/\D/g, '');
 
-      // Check if Web Share API with file sharing is supported (Mobile / Chrome / Safari / Edge)
+      // Only use Web Share API on mobile devices (iOS / Android) where WhatsApp is integrated in native share sheet.
+      // On desktop (macOS / Windows), OS share sheets lack WhatsApp integration for browser files,
+      // so we use the desktop flow: copy image to clipboard, download file, and open WhatsApp chat.
+      const isMobile =
+        typeof navigator !== 'undefined' &&
+        (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '') ||
+          (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1));
+
       if (
+        isMobile &&
         navigator.canShare &&
         navigator.canShare({ files: [file] }) &&
         navigator.share
@@ -284,9 +292,9 @@ function StatementContent() {
         console.warn('Clipboard write failed:', clipboardErr);
       }
 
-      // 3. Open WhatsApp Web chat with summary caption
+      // 3. Open WhatsApp Web / Desktop chat with summary caption
       const captionText = encodeURIComponent(
-        `*Account Statement - ${selectedAgent.name}*\nPeriod: ${fromDate ? formatDate(fromDate) : 'Start'} to ${toDate ? formatDate(toDate) : 'Present'}\nClosing Balance: *${formatNumber(statement.closingBalance.amount)} ${statement.closingBalance.type}*\n\n(Report image downloaded - you can drag & drop or paste Ctrl+V into this chat)`
+        `*Account Statement - ${selectedAgent.name}*\nPeriod: ${fromDate ? formatDate(fromDate) : 'Start'} to ${toDate ? formatDate(toDate) : 'Present'}\nClosing Balance: *${formatNumber(statement.closingBalance.amount)} ${statement.closingBalance.type}*\n\n(Report image downloaded - you can drag & drop or paste Cmd+V / Ctrl+V into this chat)`
       );
       const waUrl = phoneDigits
         ? `https://wa.me/${phoneDigits}?text=${captionText}`
@@ -516,7 +524,7 @@ function StatementContent() {
             <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2 animate-in fade-in">
               <Check className="h-4 w-4 shrink-0 text-emerald-600" />
               <span>
-                Report image downloaded & copied to clipboard! Paste (Ctrl+V) or drag the file into your WhatsApp chat.
+                Report image downloaded & copied to clipboard! Paste (Cmd+V / Ctrl+V) or drag the file into your WhatsApp chat.
               </span>
             </div>
           )}
