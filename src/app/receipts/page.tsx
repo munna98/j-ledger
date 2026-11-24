@@ -23,6 +23,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
+import { triggerHaptic } from '@/lib/haptics';
 
 export default function ReceiptsPage() {
   const [receipts, setReceipts] = React.useState<Transaction[]>([]);
@@ -216,22 +217,17 @@ export default function ReceiptsPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-              <Receipt className="h-6 w-6" />
-            </div>
-            Receipt Collections
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Record funds collected via Bank or Cash with real-time double-entry agent balance credits.
-          </p>
-        </div>
+      <div className="flex flex-row items-center justify-between gap-4 pb-1">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            <Receipt className="h-5 w-5 sm:h-6 sm:w-6" />
+          </div>
+          <span>Receipt Collections</span>
+        </h1>
         <Button
           onClick={openCreateModal}
           disabled={agents.length === 0}
-          className="self-start sm:self-auto"
+          className="shrink-0"
         >
           <Plus className="h-4 w-4" />
           <span>New Receipt</span>
@@ -275,7 +271,7 @@ export default function ReceiptsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by agent name or note..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+            className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
 
@@ -522,7 +518,7 @@ export default function ReceiptsPage() {
                   required
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
 
@@ -534,7 +530,7 @@ export default function ReceiptsPage() {
                   required
                   value={agentId}
                   onChange={(e) => setAgentId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 >
                   <option value="" disabled>
                     Select an Agent
@@ -595,6 +591,7 @@ export default function ReceiptsPage() {
               </label>
               <input
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0.01"
                 required
@@ -649,7 +646,7 @@ export default function ReceiptsPage() {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="e.g. NEFT ref 12345, Cheque #004"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
 
@@ -681,6 +678,20 @@ export default function ReceiptsPage() {
         isLoading={isDeleting}
         onConfirm={handleDeleteConfirm}
       />
+
+      {/* Mobile Floating Action Button (FAB) */}
+      <button
+        type="button"
+        onClick={() => {
+          triggerHaptic('light');
+          openCreateModal();
+        }}
+        disabled={agents.length === 0}
+        aria-label="New Receipt"
+        className="md:hidden fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-90 text-white shadow-xl shadow-blue-600/40 flex items-center justify-center transition-all cursor-pointer"
+      >
+        <Plus className="h-6 w-6 stroke-[2.5]" />
+      </button>
     </div>
   );
 }

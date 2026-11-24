@@ -1,15 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Edit2, Trash2, Layers, AlertCircle, Hash, TrendingDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, Layers, AlertCircle } from 'lucide-react';
 import { RateCategory, RateSlab } from '@/types';
 import { rateCategoryRepo } from '@/lib/repo';
 import { formatNumber } from '@/lib/format';
 import { getSlabRangeLabel, validateSlabs } from '@/lib/accounting';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Badge } from '@/components/ui/badge';
-import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 
 interface SlabRowInput {
@@ -50,11 +48,6 @@ export default function RateCategoriesPage() {
   React.useEffect(() => {
     loadData();
   }, [loadData]);
-
-  // Stats
-  const totalSlabsCount = React.useMemo(() => {
-    return categories.reduce((sum, c) => sum + c.slabs.length, 0);
-  }, [categories]);
 
   const openCreateModal = () => {
     setEditingCategory(null);
@@ -161,47 +154,20 @@ export default function RateCategoriesPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
-              <Layers className="h-6 w-6" />
-            </div>
-            Rate Categories & Slabs
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Volume-based slab pricing tiers. Rates are resolved automatically upon transaction entry.
-          </p>
-        </div>
+      <div className="flex flex-row items-center justify-between gap-4 pb-1">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+            <Layers className="h-5 w-5 sm:h-6 sm:w-6" />
+          </div>
+          <span>Rate Categories & Slabs</span>
+        </h1>
         <Button
           onClick={openCreateModal}
-          className="self-start sm:self-auto"
+          className="shrink-0"
         >
           <Plus className="h-4 w-4" />
           <span>New Category</span>
         </Button>
-      </div>
-
-      {/* KPI Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard
-          title="Rate Categories"
-          value={categories.length}
-          icon={Layers}
-          variant="blue"
-        />
-        <StatCard
-          title="Total Defined Slabs"
-          value={totalSlabsCount}
-          icon={Hash}
-          variant="emerald"
-        />
-        <StatCard
-          title="Volume Pricing"
-          value="Automated"
-          icon={TrendingDown}
-          variant="slate"
-        />
       </div>
 
       {loading ? (
@@ -230,7 +196,7 @@ export default function RateCategoriesPage() {
             return (
               <div
                 key={cat.id}
-                className="bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-5 shadow-2xs flex flex-col justify-between hover:shadow-md transition-all duration-200"
+                className="bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-5 shadow-2xs hover:shadow-md transition-all duration-200"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -300,11 +266,6 @@ export default function RateCategoriesPage() {
                     </table>
                   </div>
                 </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                  <span>Rate applies to the entire order quantity</span>
-                  <Badge variant="neutral" className="text-[10px]">Tier Auto-Resolved</Badge>
-                </div>
               </div>
             );
           })}
@@ -336,7 +297,7 @@ export default function RateCategoriesPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Standard, Premium, Wholesale"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500"
               />
             </div>
 
@@ -376,12 +337,13 @@ export default function RateCategoriesPage() {
                           <td className="px-3.5 py-2">
                             <input
                               type="number"
+                              inputMode="numeric"
                               min={isFirst ? 0 : 1}
                               value={slab.from_qty}
                               onChange={(e) =>
                                 handleSlabChange(index, 'from_qty', parseInt(e.target.value) || 0)
                               }
-                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono"
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm font-mono"
                             />
                           </td>
                           <td className="px-3.5 py-2 text-xs font-medium text-slate-600 dark:text-slate-300">
@@ -390,6 +352,7 @@ export default function RateCategoriesPage() {
                           <td className="px-3.5 py-2">
                             <input
                               type="number"
+                              inputMode="decimal"
                               step="0.01"
                               min="0.01"
                               required
@@ -397,7 +360,7 @@ export default function RateCategoriesPage() {
                               onChange={(e) =>
                                 handleSlabChange(index, 'rate', parseFloat(e.target.value) || 0)
                               }
-                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono text-right"
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm font-mono text-right"
                             />
                           </td>
                           <td className="px-3.5 py-2 text-center">

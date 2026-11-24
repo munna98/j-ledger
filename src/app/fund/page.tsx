@@ -193,19 +193,14 @@ export default function FundPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
-              <Wallet className="h-6 w-6" />
-            </div>
-            Fund & Profit Management
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Global capital pool, daily acquisition rates, cost of goods consumed by sales, and gross profit.
-          </p>
-        </div>
-        <Button onClick={openCreateModal} className="self-start sm:self-auto">
+      <div className="flex flex-row items-center justify-between gap-4 pb-1">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
+            <Wallet className="h-5 w-5 sm:h-6 sm:w-6" />
+          </div>
+          <span>Fund & Profit Management</span>
+        </h1>
+        <Button onClick={openCreateModal} className="shrink-0">
           <Plus className="h-4 w-4" />
           <span>Add Fund</span>
         </Button>
@@ -248,7 +243,7 @@ export default function FundPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by note, date, or rate..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
+            className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
           />
         </div>
         {searchQuery && (
@@ -443,7 +438,7 @@ export default function FundPage() {
                   required
                   value={fundDate}
                   onChange={(e) => setFundDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-base sm:text-sm text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
                 />
               </div>
 
@@ -454,6 +449,7 @@ export default function FundPage() {
                   </label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="any"
                     min="0.01"
                     required
@@ -462,7 +458,7 @@ export default function FundPage() {
                     onChange={(e) =>
                       setFundQty(e.target.value === '' ? '' : parseFloat(e.target.value))
                     }
-                    className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-base sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
                   />
                 </div>
                 <div>
@@ -471,6 +467,7 @@ export default function FundPage() {
                   </label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="any"
                     min="0.01"
                     required
@@ -479,7 +476,7 @@ export default function FundPage() {
                     onChange={(e) =>
                       setFundRate(e.target.value === '' ? '' : parseFloat(e.target.value))
                     }
-                    className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-base sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
                   />
                 </div>
               </div>
@@ -521,7 +518,7 @@ export default function FundPage() {
                   placeholder="e.g. Morning tranche"
                   value={fundNote}
                   onChange={(e) => setFundNote(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-base sm:text-sm text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
                 />
               </div>
             </div>

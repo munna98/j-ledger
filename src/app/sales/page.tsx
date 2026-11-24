@@ -26,6 +26,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
+import { triggerHaptic } from '@/lib/haptics';
 
 export default function SalesPage() {
   const [sales, setSales] = React.useState<Transaction[]>([]);
@@ -403,22 +404,17 @@ export default function SalesPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <ShoppingBag className="h-6 w-6" />
-            </div>
-            Sales Transactions
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Automated tier pricing, volume rate slabs, full/partial cancellations, and double-entry postings.
-          </p>
-        </div>
+      <div className="flex flex-row items-center justify-between gap-4 pb-1">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6" />
+          </div>
+          <span>Sales Transactions</span>
+        </h1>
         <Button
           onClick={openCreateSaleModal}
           disabled={agents.length === 0}
-          className="self-start sm:self-auto"
+          className="shrink-0"
         >
           <Plus className="h-4 w-4" />
           <span>New Sale</span>
@@ -468,7 +464,7 @@ export default function SalesPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by agent name or party..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
+            className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
           />
         </div>
 
@@ -947,7 +943,7 @@ export default function SalesPage() {
                   required
                   value={saleDate}
                   onChange={(e) => setSaleDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
               </div>
 
@@ -962,7 +958,7 @@ export default function SalesPage() {
                     setSaleAgentId(e.target.value);
                     setIsRateManuallyOverridden(false);
                   }}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 >
                   <option value="" disabled>
                     Select an Agent
@@ -1000,7 +996,7 @@ export default function SalesPage() {
                 value={saleParty}
                 onChange={(e) => setSaleParty(e.target.value)}
                 placeholder="e.g. Walk-in customer or Party name"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
             </div>
 
@@ -1011,6 +1007,7 @@ export default function SalesPage() {
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   step="1"
                   min="1"
                   required
@@ -1020,7 +1017,7 @@ export default function SalesPage() {
                     setSaleQty(val);
                   }}
                   placeholder="30"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
               </div>
 
@@ -1045,6 +1042,7 @@ export default function SalesPage() {
                 </div>
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   min="0.01"
                   required
@@ -1055,7 +1053,7 @@ export default function SalesPage() {
                     setIsRateManuallyOverridden(true);
                   }}
                   placeholder="381.50"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono text-right focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm font-mono text-right focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
                 {autoRateInfo && (
                   <p className="text-[11px] text-slate-500 mt-1">
@@ -1209,11 +1207,12 @@ export default function SalesPage() {
                     max={round2(cancelTargetSale.sale_details.qty - getTotalCancelledQty(cancelTargetSale.id))}
                     required
                     readOnly={cancelType === 'full'}
+                    inputMode="numeric"
                     value={cancelQty}
                     onChange={(e) =>
                       setCancelQty(e.target.value === '' ? '' : parseInt(e.target.value) || 0)
                     }
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-mono ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-base sm:text-sm font-mono ${
                       cancelType === 'full'
                         ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
                         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100'
@@ -1230,7 +1229,7 @@ export default function SalesPage() {
                     required
                     value={cancelDate}
                     onChange={(e) => setCancelDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm"
                   />
                 </div>
               </div>
@@ -1244,7 +1243,7 @@ export default function SalesPage() {
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                   placeholder="e.g. Returned goods, order revised"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm"
                 />
               </div>
 
@@ -1315,6 +1314,7 @@ export default function SalesPage() {
                   </label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     step="1"
                     min="1"
                     required
@@ -1322,7 +1322,7 @@ export default function SalesPage() {
                     onChange={(e) =>
                       setEditCancelQty(e.target.value === '' ? '' : parseInt(e.target.value) || 0)
                     }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm font-mono"
                   />
                 </div>
 
@@ -1335,7 +1335,7 @@ export default function SalesPage() {
                     required
                     value={editCancelDate}
                     onChange={(e) => setEditCancelDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm"
                   />
                 </div>
               </div>
@@ -1349,7 +1349,7 @@ export default function SalesPage() {
                   value={editCancelReason}
                   onChange={(e) => setEditCancelReason(e.target.value)}
                   placeholder="e.g. Revised return"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm"
                 />
               </div>
 
@@ -1397,6 +1397,20 @@ export default function SalesPage() {
         isLoading={isDeleting}
         onConfirm={handleDeleteCancelConfirm}
       />
+
+      {/* Mobile Floating Action Button (FAB) */}
+      <button
+        type="button"
+        onClick={() => {
+          triggerHaptic('light');
+          openCreateSaleModal();
+        }}
+        disabled={agents.length === 0}
+        aria-label="New Sale"
+        className="md:hidden fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 h-14 w-14 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-90 text-white shadow-xl shadow-emerald-600/40 flex items-center justify-center transition-all cursor-pointer"
+      >
+        <Plus className="h-6 w-6 stroke-[2.5]" />
+      </button>
     </div>
   );
 }

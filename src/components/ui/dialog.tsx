@@ -294,33 +294,41 @@ export function DialogContent({
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in-0 duration-200" />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 overflow-y-auto">
         <DialogPrimitive.Content
           ref={contentRef}
           onKeyDown={onKeyDown}
           onOpenAutoFocus={onOpenAutoFocus}
           className={cn(
-            'relative w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 duration-200 focus:outline-hidden my-auto max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3.5rem)] flex flex-col overflow-hidden',
+            'relative w-full bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 duration-200 focus:outline-hidden max-h-[88dvh] sm:max-h-[calc(100dvh-3.5rem)] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:fade-in-0',
             maxWidth,
             className
           )}
         >
+          {/* Mobile Sheet Grab Handle */}
+          <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mt-2.5 mb-1 sm:hidden shrink-0" />
+
           {title && (
-            <div className="shrink-0 px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800/80 pr-12">
-              <DialogPrimitive.Title className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            <div className="shrink-0 px-5 sm:px-6 pt-2.5 sm:pt-5 pb-3 sm:pb-4 border-b border-slate-100 dark:border-slate-800/80 pr-12">
+              <DialogPrimitive.Title className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {title}
               </DialogPrimitive.Title>
               {description && (
-                <DialogPrimitive.Description className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                <DialogPrimitive.Description className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                   {description}
                 </DialogPrimitive.Description>
               )}
             </div>
           )}
-          <div className={cn('overflow-y-auto flex-1 min-h-0 px-6 py-5', !title && 'pt-6')}>
+          <div
+            className={cn(
+              'overflow-y-auto flex-1 min-h-0 px-5 sm:px-6 py-4 sm:py-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-5',
+              !title && 'pt-4 sm:pt-6'
+            )}
+          >
             {children}
           </div>
-          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-hidden z-10">
+          <DialogPrimitive.Close className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-xl p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-hidden z-10 cursor-pointer">
             <X className="h-5 w-5" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>

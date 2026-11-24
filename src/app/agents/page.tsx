@@ -283,21 +283,16 @@ export default function AgentsPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-              <Users className="h-6 w-6" />
-            </div>
-            Agents & Ledgers
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Agent profiles, custom rate overrides, opening balances, and live receivables tracking.
-          </p>
-        </div>
+      <div className="flex flex-row items-center justify-between gap-4 pb-1">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+            <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+          </div>
+          <span>Agents & Ledgers</span>
+        </h1>
         <Button
           onClick={openCreateModal}
-          className="self-start sm:self-auto"
+          className="shrink-0"
         >
           <Plus className="h-4 w-4" />
           <span>New Agent</span>
@@ -341,7 +336,7 @@ export default function AgentsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by agent name or phone number..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-500/20"
+            className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-500/20"
           />
         </div>
 
@@ -629,7 +624,7 @@ export default function AgentsPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Ravi Kumar"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                 />
               </div>
 
@@ -642,7 +637,7 @@ export default function AgentsPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="e.g. 9876543210"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                 />
               </div>
             </div>
@@ -725,11 +720,12 @@ export default function AgentsPage() {
                                   <td className="px-3.5 py-2">
                                     <input
                                       type="number"
+                                      inputMode="decimal"
                                       step="0.01"
                                       placeholder={String(slab.rate)}
                                       value={overrides[slab.id] || ''}
                                       onChange={(e) => handleOverrideChange(slab.id, e.target.value)}
-                                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs font-mono text-right focus:ring-1 focus:ring-purple-500"
+                                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-xs font-mono text-right focus:ring-1 focus:ring-purple-500"
                                     />
                                   </td>
                                 </tr>
@@ -762,19 +758,20 @@ export default function AgentsPage() {
                 <div className="sm:col-span-1">
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     min="0"
                     value={obAmount}
                     onChange={(e) => setObAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm font-mono focus:ring-2 focus:ring-purple-500/20"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm font-mono focus:ring-2 focus:ring-purple-500/20"
                   />
                 </div>
                 <div className="sm:col-span-1">
                   <select
                     value={obType}
                     onChange={(e) => setObType(e.target.value as 'dr' | 'cr')}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-purple-500/20"
                   >
                     <option value="dr">Owes Us (Dr)</option>
                     <option value="cr">We Owe Agent (Cr)</option>
@@ -785,7 +782,7 @@ export default function AgentsPage() {
                     type="date"
                     value={obDate}
                     onChange={(e) => setObDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-purple-500/20"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm focus:ring-2 focus:ring-purple-500/20"
                   />
                 </div>
               </div>
