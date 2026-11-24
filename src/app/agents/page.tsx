@@ -434,7 +434,13 @@ export default function AgentsPage() {
                           <div className="h-8 w-8 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0">
                             {agent.name.charAt(0).toUpperCase()}
                           </div>
-                          <span>{agent.name}</span>
+                          <Link
+                            href={`/statement?agent_id=${agent.id}`}
+                            className="hover:text-purple-600 dark:hover:text-purple-400 hover:underline transition-colors"
+                            title={`View ledger statement for ${agent.name}`}
+                          >
+                            {agent.name}
+                          </Link>
                         </div>
                       </td>
                       <td className="px-5 py-4 text-slate-600 dark:text-slate-400">
@@ -539,7 +545,15 @@ export default function AgentsPage() {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-[11px] font-mono text-slate-400">#{index + 1}</span>
-                          <h3 className="font-bold text-base text-slate-900 dark:text-white">{agent.name}</h3>
+                          <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                            <Link
+                              href={`/statement?agent_id=${agent.id}`}
+                              className="hover:text-purple-600 dark:hover:text-purple-400 hover:underline transition-colors"
+                              title={`View ledger statement for ${agent.name}`}
+                            >
+                              {agent.name}
+                            </Link>
+                          </h3>
                         </div>
                         {agent.phone && (
                           <p className="text-xs text-slate-500 font-mono flex items-center gap-1 mt-0.5">

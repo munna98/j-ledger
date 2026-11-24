@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import {
   Plus,
   Edit2,
@@ -593,7 +594,17 @@ export default function SalesPage() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="font-semibold text-slate-900 dark:text-white">
-                            {agent?.name || 'Unknown Agent'}
+                            {agent ? (
+                              <Link
+                                href={`/statement?agent_id=${agent.id}`}
+                                className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors"
+                                title={`View ledger statement for ${agent.name}`}
+                              >
+                                {agent.name}
+                              </Link>
+                            ) : (
+                              'Unknown Agent'
+                            )}
                           </div>
                           <div className="text-xs text-slate-500 dark:text-slate-400">
                             Party: <span className="font-medium text-slate-700 dark:text-slate-300">{details.party || 'Direct'}</span>
@@ -769,7 +780,17 @@ export default function SalesPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                        {agent?.name || 'Unknown Agent'}
+                        {agent ? (
+                          <Link
+                            href={`/statement?agent_id=${agent.id}`}
+                            className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors"
+                            title={`View ledger statement for ${agent.name}`}
+                          >
+                            {agent.name}
+                          </Link>
+                        ) : (
+                          'Unknown Agent'
+                        )}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         Party: <span className="font-medium text-slate-700 dark:text-slate-300">{details.party || 'Direct'}</span> • {formatDate(sale.date)}

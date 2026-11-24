@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   FileText,
   Download,
@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Share2,
   Check,
+  ArrowLeft,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toBlob } from 'html-to-image';
@@ -29,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { triggerHaptic } from '@/lib/haptics';
 
 function StatementContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const queryAgentId = searchParams.get('agent_id');
 
@@ -68,8 +70,10 @@ function StatementContent() {
       setEntries(allEntries);
       setTransactions(allTransactions);
 
-      if (!selectedAgentId && allAgents.length > 0) {
-        setSelectedAgentId(queryAgentId || allAgents[0].id);
+      if (allAgents.length > 0) {
+        const targetId = queryAgentId || selectedAgentId;
+        const exists = allAgents.some((a) => a.id === targetId);
+        setSelectedAgentId(exists ? targetId : allAgents[0].id);
       }
     } catch (err: any) {
       console.error(err);
@@ -77,6 +81,12 @@ function StatementContent() {
       setLoading(false);
     }
   }, [queryAgentId, selectedAgentId]);
+
+  React.useEffect(() => {
+    if (queryAgentId) {
+      setSelectedAgentId(queryAgentId);
+    }
+  }, [queryAgentId]);
 
   React.useEffect(() => {
     loadData();
@@ -311,16 +321,38 @@ function StatementContent() {
     }
   };
 
+  const handleBack = () => {
+    triggerHaptic('light');
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/sales');
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 print:hidden">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-            <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
-          </div>
-          <span>Account Statement & Ledger</span>
-        </h1>
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBack}
+            className="h-9 px-2.5 sm:px-3 text-xs sm:text-sm font-medium shrink-0"
+            title="Go back"
+          >
+            <ArrowLeft className="h-4 w-4 shrink-0" />
+            <span>Back</span>
+          </Button>
+
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+              <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+            <span>Account Statement & Ledger</span>
+          </h1>
+        </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
@@ -495,10 +527,9 @@ function StatementContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
             <StatCard
               title="Opening Balance"
-              value={formatNumber(statement.openingBalance.amount)}
+              value={`${formatNumber(statement.openingBalance.amount)}${statement.openingBalance.type ? ` ${statement.openingBalance.type}` : ''}`}
               icon={Scale}
               variant="slate"
-              badge={statement.openingBalance.type || undefined}
             />
             <StatCard
               title="Period Debits"

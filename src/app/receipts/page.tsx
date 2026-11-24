@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import {
   Plus,
   Edit2,
@@ -373,7 +374,17 @@ export default function ReceiptsPage() {
                         {formatDate(rec.date)}
                       </td>
                       <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">
-                        {agent?.name || 'Unknown Agent'}
+                        {agent ? (
+                          <Link
+                            href={`/statement?agent_id=${agent.id}`}
+                            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors"
+                            title={`View ledger statement for ${agent.name}`}
+                          >
+                            {agent.name}
+                          </Link>
+                        ) : (
+                          'Unknown Agent'
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         {details.received_in === 'bank' ? (
@@ -437,7 +448,17 @@ export default function ReceiptsPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                        {agent?.name || 'Unknown Agent'}
+                        {agent ? (
+                          <Link
+                            href={`/statement?agent_id=${agent.id}`}
+                            className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors"
+                            title={`View ledger statement for ${agent.name}`}
+                          >
+                            {agent.name}
+                          </Link>
+                        ) : (
+                          'Unknown Agent'
+                        )}
                       </h3>
                       <p className="text-xs text-slate-500 font-mono mt-0.5">{formatDate(rec.date)}</p>
                     </div>
