@@ -294,7 +294,7 @@ function StatementContent() {
 
       // 3. Open WhatsApp Web / Desktop chat with summary caption
       const captionText = encodeURIComponent(
-        `*Account Statement - ${selectedAgent.name}*\nPeriod: ${fromDate ? formatDate(fromDate) : 'Start'} to ${toDate ? formatDate(toDate) : 'Present'}\nClosing Balance: *${formatNumber(statement.closingBalance.amount)} ${statement.closingBalance.type}*\n\n(Report image downloaded - you can drag & drop or paste Cmd+V / Ctrl+V into this chat)`
+        `*Account Statement - ${selectedAgent.name}*\nPeriod: ${fromDate ? formatDate(fromDate) : 'Start'} to ${toDate ? formatDate(toDate) : 'Present'}\nClosing Balance: *${formatNumber(statement.closingBalance.amount)} ${statement.closingBalance.type}*`
       );
       const waUrl = phoneDigits
         ? `https://wa.me/${phoneDigits}?text=${captionText}`
