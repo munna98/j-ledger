@@ -704,33 +704,38 @@ export default function AgentsPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                          {selectedCategory.slabs
-                            .sort((a, b) => a.from_qty - b.from_qty)
-                            .map((slab, i, arr) => {
-                              const nextSlab = arr[i + 1];
-                              const label = getSlabRangeLabel(slab, nextSlab);
-                              return (
-                                <tr key={slab.id}>
-                                  <td className="px-3.5 py-2 font-medium text-slate-800 dark:text-slate-200">
-                                    {label}
-                                  </td>
-                                  <td className="px-3.5 py-2 text-right font-mono text-slate-500 dark:text-slate-400">
-                                    {formatNumber(slab.rate)}
-                                  </td>
-                                  <td className="px-3.5 py-2">
-                                    <input
-                                      type="number"
-                                      inputMode="decimal"
-                                      step="0.01"
-                                      placeholder={String(slab.rate)}
-                                      value={overrides[slab.id] || ''}
-                                      onChange={(e) => handleOverrideChange(slab.id, e.target.value)}
-                                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-xs font-mono text-right focus:ring-1 focus:ring-purple-500"
-                                    />
-                                  </td>
-                                </tr>
-                              );
-                            })}
+                          {(() => {
+                            const sortedAsc = [...selectedCategory.slabs].sort(
+                              (a, b) => a.from_qty - b.from_qty
+                            );
+                            const displaySlabs = sortedAsc
+                              .map((slab, i) => ({
+                                ...slab,
+                                label: getSlabRangeLabel(slab, sortedAsc[i + 1]),
+                              }))
+                              .reverse();
+                            return displaySlabs.map((slab) => (
+                              <tr key={slab.id}>
+                                <td className="px-3.5 py-2 font-medium text-slate-800 dark:text-slate-200">
+                                  {slab.label}
+                                </td>
+                                <td className="px-3.5 py-2 text-right font-mono text-slate-500 dark:text-slate-400">
+                                  {formatNumber(slab.rate)}
+                                </td>
+                                <td className="px-3.5 py-2">
+                                  <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="0.01"
+                                    placeholder={String(slab.rate)}
+                                    value={overrides[slab.id] || ''}
+                                    onChange={(e) => handleOverrideChange(slab.id, e.target.value)}
+                                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-xs font-mono text-right focus:ring-1 focus:ring-purple-500"
+                                  />
+                                </td>
+                              </tr>
+                            ));
+                          })()}
                         </tbody>
                       </table>
                     </div>

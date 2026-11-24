@@ -53,10 +53,10 @@ export default function RateCategoriesPage() {
     setEditingCategory(null);
     setName('');
     setSlabs([
-      { id: 'slab_1', from_qty: 1, rate: 385 },
-      { id: 'slab_2', from_qty: 25, rate: 381.5 },
-      { id: 'slab_3', from_qty: 50, rate: 380 },
       { id: 'slab_4', from_qty: 100, rate: 375 },
+      { id: 'slab_3', from_qty: 50, rate: 380 },
+      { id: 'slab_2', from_qty: 25, rate: 381.5 },
+      { id: 'slab_1', from_qty: 1, rate: 385 },
     ]);
     setFormError(null);
     setIsFormOpen(true);
@@ -65,22 +65,23 @@ export default function RateCategoriesPage() {
   const openEditModal = (cat: RateCategory) => {
     setEditingCategory(cat);
     setName(cat.name);
-    setSlabs(cat.slabs.map((s) => ({ ...s })));
+    const sortedDesc = [...cat.slabs].sort((a, b) => b.from_qty - a.from_qty);
+    setSlabs(sortedDesc.map((s) => ({ ...s })));
     setFormError(null);
     setIsFormOpen(true);
   };
 
   const handleAddSlab = () => {
-    const last = slabs[slabs.length - 1];
-    const nextFrom = last ? last.from_qty + 25 : 1;
-    const nextRate = last ? last.rate : 100;
+    const highest = slabs[0];
+    const nextFrom = highest ? (highest.from_qty <= 1 ? 25 : highest.from_qty + 25) : 25;
+    const nextRate = highest ? highest.rate : 100;
     setSlabs([
-      ...slabs,
       {
         id: `slab_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
         from_qty: nextFrom,
         rate: nextRate,
       },
+      ...slabs,
     ]);
   };
 
@@ -332,9 +333,13 @@ export default function RateCategoriesPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                     {slabs.map((slab, index) => {
-                      const nextSlab = slabs[index + 1];
-                      const derivedRange = getSlabRangeLabel(slab, nextSlab);
-                      const isFirst = index === 0;
+                      const higherSlabs = slabs.filter((s) => s.from_qty > slab.from_qty);
+                      const nextHigherSlab =
+                        higherSlabs.length > 0
+                          ? higherSlabs.reduce((min, s) => (s.from_qty < min.from_qty ? s : min))
+                          : undefined;
+                      const derivedRange = getSlabRangeLabel(slab, nextHigherSlab);
+                      const isBaseSlab = index === slabs.length - 1;
 
                       return (
                         <tr key={slab.id}>
@@ -342,7 +347,7 @@ export default function RateCategoriesPage() {
                             <input
                               type="number"
                               inputMode="numeric"
-                              min={isFirst ? 0 : 1}
+                              min={isBaseSlab ? 0 : 1}
                               value={slab.from_qty}
                               onChange={(e) =>
                                 handleSlabChange(index, 'from_qty', parseInt(e.target.value) || 0)
@@ -368,7 +373,7 @@ export default function RateCategoriesPage() {
                             />
                           </td>
                           <td className="px-3.5 py-2 text-center">
-                            {!isFirst && (
+                            {!isBaseSlab && (
                               <button
                                 type="button"
                                 onClick={() => handleRemoveSlab(index)}
@@ -386,7 +391,7 @@ export default function RateCategoriesPage() {
                 </table>
               </div>
               <p className="text-[11px] text-slate-400 mt-2">
-                Tip: Enter only the FROM quantity. The TO quantity is automatically derived from the next slab minus 1.
+                Tip: Enter only the FROM quantity. Slab ranges are derived automatically.
               </p>
             </div>
 
