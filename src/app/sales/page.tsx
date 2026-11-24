@@ -50,8 +50,8 @@ export default function SalesPage() {
   const [saleDate, setSaleDate] = React.useState('');
   const [saleAgentId, setSaleAgentId] = React.useState('');
   const [saleParty, setSaleParty] = React.useState('');
-  const [saleQty, setSaleQty] = React.useState<number | ''>('');
-  const [saleRate, setSaleRate] = React.useState<number | ''>('');
+  const [saleQty, setSaleQty] = React.useState<number | string>('');
+  const [saleRate, setSaleRate] = React.useState<number | string>('');
   const [isRateManuallyOverridden, setIsRateManuallyOverridden] = React.useState(false);
   const [saleFormError, setSaleFormError] = React.useState<string | null>(null);
   const [isSavingSale, setIsSavingSale] = React.useState(false);
@@ -59,7 +59,7 @@ export default function SalesPage() {
   // Cancel Modal State (Create)
   const [cancelTargetSale, setCancelTargetSale] = React.useState<Transaction | null>(null);
   const [cancelType, setCancelType] = React.useState<'full' | 'partial'>('full');
-  const [cancelQty, setCancelQty] = React.useState<number | ''>('');
+  const [cancelQty, setCancelQty] = React.useState<number | string>('');
   const [cancelDate, setCancelDate] = React.useState('');
   const [cancelReason, setCancelReason] = React.useState('');
   const [cancelError, setCancelError] = React.useState<string | null>(null);
@@ -68,7 +68,7 @@ export default function SalesPage() {
   // Cancel Edit Modal State
   const [editingCancel, setEditingCancel] = React.useState<Transaction | null>(null);
   const [editCancelParentSale, setEditCancelParentSale] = React.useState<Transaction | null>(null);
-  const [editCancelQty, setEditCancelQty] = React.useState<number | ''>('');
+  const [editCancelQty, setEditCancelQty] = React.useState<number | string>('');
   const [editCancelReason, setEditCancelReason] = React.useState('');
   const [editCancelDate, setEditCancelDate] = React.useState('');
   const [editCancelError, setEditCancelError] = React.useState<string | null>(null);
@@ -119,12 +119,13 @@ export default function SalesPage() {
 
   // Auto rate calculation for sale form
   const autoRateInfo = React.useMemo(() => {
-    if (!selectedFormAgent || !saleQty || typeof saleQty !== 'number' || saleQty <= 0) {
+    const numQty = typeof saleQty === 'number' ? saleQty : parseFloat(String(saleQty));
+    if (!selectedFormAgent || isNaN(numQty) || numQty <= 0) {
       return null;
     }
     const cat = categories.find((c) => c.id === selectedFormAgent.rate_category_id);
     if (!cat) return null;
-    return resolveRate(cat.slabs, selectedFormAgent.rate_overrides, saleQty);
+    return resolveRate(cat.slabs, selectedFormAgent.rate_overrides, numQty);
   }, [selectedFormAgent, saleQty, categories]);
 
   // When agent or qty changes, auto fill rate if not manually overridden
@@ -242,11 +243,11 @@ export default function SalesPage() {
     const qty = typeof saleQty === 'number' ? saleQty : parseFloat(String(saleQty));
     const rate = typeof saleRate === 'number' ? saleRate : parseFloat(String(saleRate));
 
-    if (!qty || qty <= 0) {
+    if (isNaN(qty) || qty <= 0) {
       setSaleFormError('Quantity must be greater than zero');
       return;
     }
-    if (!rate || rate <= 0) {
+    if (isNaN(rate) || rate <= 0) {
       setSaleFormError('Rate must be greater than zero');
       return;
     }
@@ -298,7 +299,7 @@ export default function SalesPage() {
     setCancelError(null);
 
     const qty = typeof cancelQty === 'number' ? cancelQty : parseFloat(String(cancelQty));
-    if (!qty || qty <= 0) {
+    if (isNaN(qty) || qty <= 0) {
       setCancelError('Cancelled quantity must be greater than zero');
       return;
     }
@@ -340,7 +341,7 @@ export default function SalesPage() {
 
     const qty =
       typeof editCancelQty === 'number' ? editCancelQty : parseFloat(String(editCancelQty));
-    if (!qty || qty <= 0) {
+    if (isNaN(qty) || qty <= 0) {
       setEditCancelError('Cancelled quantity must be greater than zero');
       return;
     }
@@ -1007,16 +1008,15 @@ export default function SalesPage() {
                 </label>
                 <input
                   type="number"
-                  inputMode="numeric"
-                  step="1"
-                  min="1"
+                  inputMode="decimal"
+                  step="any"
+                  min="0.001"
                   required
                   value={saleQty}
                   onChange={(e) => {
-                    const val = e.target.value === '' ? '' : parseInt(e.target.value) || 0;
-                    setSaleQty(val);
+                    setSaleQty(e.target.value);
                   }}
-                  placeholder="30"
+                  placeholder="e.g. 125.85"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
               </div>
@@ -1043,13 +1043,12 @@ export default function SalesPage() {
                 <input
                   type="number"
                   inputMode="decimal"
-                  step="0.01"
+                  step="any"
                   min="0.01"
                   required
                   value={saleRate}
                   onChange={(e) => {
-                    const val = e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
-                    setSaleRate(val);
+                    setSaleRate(e.target.value);
                     setIsRateManuallyOverridden(true);
                   }}
                   placeholder="381.50"
@@ -1083,8 +1082,8 @@ export default function SalesPage() {
               <span className="font-mono text-2xl font-bold text-slate-900 dark:text-white">
                 {formatNumber(
                   round2(
-                    ((typeof saleQty === 'number' ? saleQty : 0) *
-                      (typeof saleRate === 'number' ? saleRate : 0)) /
+                    ((typeof saleQty === 'number' ? saleQty : parseFloat(String(saleQty)) || 0) *
+                      (typeof saleRate === 'number' ? saleRate : parseFloat(String(saleRate)) || 0)) /
                       100
                   )
                 )}
@@ -1202,15 +1201,15 @@ export default function SalesPage() {
                   </label>
                   <input
                     type="number"
-                    step="1"
-                    min="1"
+                    step="any"
+                    min="0.001"
                     max={round2(cancelTargetSale.sale_details.qty - getTotalCancelledQty(cancelTargetSale.id))}
                     required
                     readOnly={cancelType === 'full'}
-                    inputMode="numeric"
+                    inputMode="decimal"
                     value={cancelQty}
                     onChange={(e) =>
-                      setCancelQty(e.target.value === '' ? '' : parseInt(e.target.value) || 0)
+                      setCancelQty(e.target.value)
                     }
                     className={`w-full px-3.5 py-2.5 rounded-xl border text-base sm:text-sm font-mono ${
                       cancelType === 'full'
@@ -1260,7 +1259,7 @@ export default function SalesPage() {
                 <div className="font-mono text-xl font-bold text-amber-900 dark:text-amber-100">
                   {formatNumber(
                     round2(
-                      ((typeof cancelQty === 'number' ? cancelQty : 0) *
+                      ((typeof cancelQty === 'number' ? cancelQty : parseFloat(String(cancelQty)) || 0) *
                         cancelTargetSale.sale_details.rate) /
                         100
                     )
@@ -1314,13 +1313,13 @@ export default function SalesPage() {
                   </label>
                   <input
                     type="number"
-                    inputMode="numeric"
-                    step="1"
-                    min="1"
+                    inputMode="decimal"
+                    step="any"
+                    min="0.001"
                     required
                     value={editCancelQty}
                     onChange={(e) =>
-                      setEditCancelQty(e.target.value === '' ? '' : parseInt(e.target.value) || 0)
+                      setEditCancelQty(e.target.value)
                     }
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm font-mono"
                   />
