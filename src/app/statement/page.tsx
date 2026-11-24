@@ -469,7 +469,7 @@ function StatementContent() {
           >
             This Month
           </button>
-          <span className="text-slate-300 dark:text-slate-700 shrink-0">•</span>
+          <span className="hidden sm:inline text-slate-300 dark:text-slate-700 shrink-0">•</span>
           <button
             type="button"
             onClick={() => setPreset('last7')}
@@ -481,7 +481,7 @@ function StatementContent() {
           >
             Last 7 Days
           </button>
-          <span className="text-slate-300 dark:text-slate-700 shrink-0">•</span>
+          <span className="hidden sm:inline text-slate-300 dark:text-slate-700 shrink-0">•</span>
           <button
             type="button"
             onClick={() => setPreset('last30')}
@@ -493,7 +493,7 @@ function StatementContent() {
           >
             Last 30 Days
           </button>
-          <span className="text-slate-300 dark:text-slate-700 shrink-0">•</span>
+          <span className="hidden sm:inline text-slate-300 dark:text-slate-700 shrink-0">•</span>
           <button
             type="button"
             onClick={() => setPreset('all')}
