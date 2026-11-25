@@ -17,11 +17,18 @@ import {
   Clock,
   DollarSign,
   TrendingUp,
+  Calendar,
 } from 'lucide-react';
 import { Agent, RateCategory, Transaction, Entry, FundEntry } from '@/types';
 import { transactionRepo, agentRepo, rateCategoryRepo, entryRepo, fundRepo } from '@/lib/repo';
 import { formatNumber, formatDate } from '@/lib/format';
 import { calculateAgentBalance, resolveRate, round2, computeSaleProfit } from '@/lib/accounting';
+import {
+  DATE_FILTER_PRESETS,
+  DateFilterPreset,
+  getDateRangeForPreset,
+  isDateInRange,
+} from '@/lib/date-filters';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +48,9 @@ export default function SalesPage() {
   // Search and Filter State
   const [searchQuery, setSearchQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | 'active' | 'cancelled'>('all');
+  const [datePreset, setDatePreset] = React.useState<DateFilterPreset>('all');
+  const [fromDate, setFromDate] = React.useState('');
+  const [toDate, setToDate] = React.useState('');
 
   // Expanded cancels for each sale
   const [expandedSaleIds, setExpandedSaleIds] = React.useState<Set<string>>(new Set());
@@ -147,24 +157,54 @@ export default function SalesPage() {
     return saleCancels.reduce((sum, c) => sum + (c.cancel_details?.qty || 0), 0);
   };
 
+  const applyDatePreset = (preset: Exclude<DateFilterPreset, 'custom'>) => {
+    triggerHaptic('selection');
+    setDatePreset(preset);
+    const range = getDateRangeForPreset(preset);
+    setFromDate(range.fromDate);
+    setToDate(range.toDate);
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setDatePreset('all');
+    setFromDate('');
+    setToDate('');
+  };
+
+  const hasDateFilter = Boolean(datePreset !== 'all' || fromDate || toDate);
+  const hasActiveFilters = Boolean(searchQuery || statusFilter !== 'all' || hasDateFilter);
+
+  // Sales filtered by active date range (drives KPI cards and table)
+  const dateFilteredSales = React.useMemo(() => {
+    if (!fromDate && !toDate) return sales;
+    return sales.filter((sale) => isDateInRange(sale.date, fromDate, toDate));
+  }, [sales, fromDate, toDate]);
+
   // KPI Overview calculations
   const stats = React.useMemo(() => {
-    const grossQty = sales.reduce((sum, s) => sum + (s.sale_details?.qty || 0), 0);
-    const grossAmount = sales.reduce((sum, s) => sum + (s.sale_details?.amount || 0), 0);
+    const saleIds = new Set(dateFilteredSales.map((s) => s.id));
+    const relevantCancels = cancels.filter(
+      (c) => c.cancel_details?.sale_id && saleIds.has(c.cancel_details.sale_id)
+    );
 
-    const totalCancelledQty = cancels.reduce((sum, c) => sum + (c.cancel_details?.qty || 0), 0);
-    const totalCancelledAmount = cancels.reduce((sum, c) => sum + (c.cancel_details?.amount || 0), 0);
+    const grossQty = dateFilteredSales.reduce((sum, s) => sum + (s.sale_details?.qty || 0), 0);
+    const grossAmount = dateFilteredSales.reduce((sum, s) => sum + (s.sale_details?.amount || 0), 0);
+
+    const totalCancelledQty = relevantCancels.reduce((sum, c) => sum + (c.cancel_details?.qty || 0), 0);
+    const totalCancelledAmount = relevantCancels.reduce((sum, c) => sum + (c.cancel_details?.amount || 0), 0);
 
     const netAmount = round2(grossAmount - totalCancelledAmount);
     const netQty = round2(grossQty - totalCancelledQty);
 
     // Calculate total net profit for sales with snapshotted fund_rate
     let totalProfit = 0;
-    for (const s of sales) {
+    for (const s of dateFilteredSales) {
       if (!s.sale_details) continue;
       const fRate = s.sale_details.fund_rate;
       if (fRate != null && fRate > 0) {
-        const sCancels = getCancelsForSale(s.id);
+        const sCancels = cancels.filter((c) => c.cancel_details?.sale_id === s.id);
         const cQty = sCancels.reduce((sum, c) => sum + (c.cancel_details?.qty || 0), 0);
         const saleNetQty = round2(s.sale_details.qty - cQty);
         totalProfit = round2(totalProfit + computeSaleProfit(saleNetQty, s.sale_details.rate, fRate));
@@ -178,14 +218,14 @@ export default function SalesPage() {
       netQty,
       totalCancelledAmount,
       totalCancelledQty,
-      totalSalesCount: sales.length,
+      totalSalesCount: dateFilteredSales.length,
       totalProfit,
     };
-  }, [sales, cancels]);
+  }, [dateFilteredSales, cancels]);
 
   // Filtered sales
   const filteredSales = React.useMemo(() => {
-    return sales.filter((sale) => {
+    return dateFilteredSales.filter((sale) => {
       const details = sale.sale_details;
       if (!details) return false;
 
@@ -199,14 +239,16 @@ export default function SalesPage() {
 
       if (statusFilter === 'all') return true;
 
-      const totalCancelled = getTotalCancelledQty(sale.id);
+      const totalCancelled = cancels
+        .filter((c) => c.cancel_details?.sale_id === sale.id)
+        .reduce((sum, c) => sum + (c.cancel_details?.qty || 0), 0);
       const isFullyCancelled = totalCancelled >= details.qty;
 
       if (statusFilter === 'active') return !isFullyCancelled;
       if (statusFilter === 'cancelled') return isFullyCancelled;
       return true;
     });
-  }, [sales, agents, searchQuery, statusFilter, cancels]);
+  }, [dateFilteredSales, agents, searchQuery, statusFilter, cancels]);
 
   const openCreateSaleModal = () => {
     setEditingSale(null);
@@ -423,6 +465,73 @@ export default function SalesPage() {
         </Button>
       </div>
 
+      {/* Date Range Filter Toolbar */}
+      <div className="bg-white dark:bg-[#0e1422] p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] pb-0.5 lg:pb-0">
+          <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-slate-400 mr-1 shrink-0 whitespace-nowrap">
+            <Calendar className="h-3.5 w-3.5" />
+            Period:
+          </span>
+          {DATE_FILTER_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => applyDatePreset(preset.id)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                datePreset === preset.id
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-200/80 dark:border-emerald-800/60'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 flex-1 sm:flex-initial">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 shrink-0">
+              From
+            </span>
+            <input
+              type="date"
+              aria-label="From date"
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setDatePreset('custom');
+              }}
+              className="w-full sm:w-auto px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 flex-1 sm:flex-initial">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 shrink-0">
+              To
+            </span>
+            <input
+              type="date"
+              aria-label="To date"
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setDatePreset('custom');
+              }}
+              className="w-full sm:w-auto px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
+            />
+          </div>
+          {hasDateFilter && (
+            <button
+              type="button"
+              onClick={() => applyDatePreset('all')}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+              title="Reset date filter to All Time"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* KPI Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
@@ -517,20 +626,17 @@ export default function SalesPage() {
         <div className="text-center py-16 bg-white dark:bg-[#0e1422] rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-8 shadow-2xs">
           <ShoppingBag className="h-12 w-12 text-slate-400 mx-auto mb-3 opacity-60" />
           <h3 className="text-base font-semibold text-slate-900 dark:text-white">
-            {searchQuery || statusFilter !== 'all' ? 'No matching sales found' : 'No Sales Recorded Yet'}
+            {hasActiveFilters ? 'No matching sales found' : 'No Sales Recorded Yet'}
           </h3>
           <p className="text-sm text-slate-500 mt-1 mb-5 max-w-sm mx-auto">
-            {searchQuery || statusFilter !== 'all'
-              ? 'Try adjusting your search terms or filters.'
+            {hasActiveFilters
+              ? 'Try adjusting your search terms, status, or date range filters.'
               : 'Click below to record your first sale transaction with automated tier pricing.'}
           </p>
-          {searchQuery || statusFilter !== 'all' ? (
+          {hasActiveFilters ? (
             <Button
               variant="outline"
-              onClick={() => {
-                setSearchQuery('');
-                setStatusFilter('all');
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>
