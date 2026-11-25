@@ -17,13 +17,13 @@ export const DATE_FILTER_PRESETS: ReadonlyArray<{
   id: Exclude<DateFilterPreset, 'custom'>;
   label: string;
 }> = [
-  { id: 'all', label: 'All Time' },
   { id: 'today', label: 'Today' },
   { id: 'yesterday', label: 'Yesterday' },
   { id: 'last7', label: 'Last 7 Days' },
   { id: 'this_month', label: 'This Month' },
   { id: 'last_month', label: 'Last Month' },
   { id: 'last30', label: 'Last 30 Days' },
+  { id: 'all', label: 'All Time' },
 ];
 
 /**

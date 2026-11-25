@@ -48,9 +48,16 @@ export default function SalesPage() {
   // Search and Filter State
   const [searchQuery, setSearchQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | 'active' | 'cancelled'>('all');
-  const [datePreset, setDatePreset] = React.useState<DateFilterPreset>('all');
+  const [datePreset, setDatePreset] = React.useState<DateFilterPreset>('today');
   const [fromDate, setFromDate] = React.useState('');
   const [toDate, setToDate] = React.useState('');
+
+  // Initialize default "Today" date range on client mount to avoid SSR/build-date mismatch
+  React.useEffect(() => {
+    const range = getDateRangeForPreset('today');
+    setFromDate(range.fromDate);
+    setToDate(range.toDate);
+  }, []);
 
   // Expanded cancels for each sale
   const [expandedSaleIds, setExpandedSaleIds] = React.useState<Set<string>>(new Set());
