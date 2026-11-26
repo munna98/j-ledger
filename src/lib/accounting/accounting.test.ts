@@ -556,4 +556,72 @@ describe('Accounting Pure Functions & Posting Logic', () => {
     // Profit INR = s1 profit (6.30) * 350 = 2205
     expect(stats.totalProfitINR).toBe(2205);
   });
+
+  it('FIFO multi-tranche fund depletion across different acquisition rates', () => {
+    // Tranche 1: 50 units @ 350 -> base 175
+    // Tranche 2: 50 units @ 380 -> base 190
+    const funds: FundEntry[] = [
+      {
+        id: 'tf1',
+        date: '2026-02-01',
+        qty: 50,
+        rate: 350,
+        amount: 175,
+        created_at: '2026-02-01T08:00:00.000Z',
+        updated_at: '2026-02-01T08:00:00.000Z',
+      },
+      {
+        id: 'tf2',
+        date: '2026-02-05',
+        qty: 50,
+        rate: 380,
+        amount: 190,
+        created_at: '2026-02-05T08:00:00.000Z',
+        updated_at: '2026-02-05T08:00:00.000Z',
+      },
+    ];
+
+    // Sale of 70 units @ 400 (consumes 50 from tf1 @ 350, and 20 from tf2 @ 380)
+    const sales: Transaction[] = [
+      {
+        id: 'ts1',
+        type: 'sale',
+        date: '2026-02-10',
+        created_at: '2026-02-10T10:00:00.000Z',
+        updated_at: '2026-02-10T10:00:00.000Z',
+        sale_details: {
+          agent_id: raviAgent.id,
+          party: 'Retail Store',
+          qty: 70,
+          rate: 400,
+          amount: 280,
+          fund_rate: 380, // Latest rate at time of sale, but FIFO correctly depletes tf1 first!
+        },
+      },
+    ];
+
+    const stats = calculateFundStats(funds, sales, []);
+
+    // Total Funded: 175 + 190 = 365
+    expect(stats.totalFunded).toBe(365);
+    // Total Funded INR: 175 * 350 + 190 * 380 = 61250 + 72200 = 133450
+    expect(stats.totalFundedINR).toBe(133450);
+
+    // FIFO Fund Cost: 50 * 3.5 (tf1) + 20 * 3.8 (tf2) = 175 + 76 = 251
+    expect(stats.totalFundCost).toBe(251);
+    // Fund Cost INR: 175 * 350 + 76 * 380 = 61250 + 28880 = 90130
+    expect(stats.totalFundCostINR).toBe(90130);
+
+    // Remaining Fund: 365 - 251 = 114 (which is exactly the remaining 30 units of tf2 @ 380: 30 * 3.8 = 114)
+    expect(stats.remainingFund).toBe(114);
+    // Remaining Fund INR: 133450 - 90130 = 43320 (30 * 380 / 100 * 380 = 114 * 380 = 43320)
+    expect(stats.remainingFundINR).toBe(43320);
+
+    // Total Sales Revenue: 280
+    expect(stats.totalSalesRevenue).toBe(280);
+    // Total Profit: 280 - 251 = 29
+    expect(stats.totalProfit).toBe(29);
+    // Total Profit INR: 100400 - 90130 = 10270
+    expect(stats.totalProfitINR).toBe(10270);
+  });
 });

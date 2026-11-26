@@ -75,8 +75,9 @@ export interface FundStats {
 
 /**
  * Calculates aggregated fund-level statistics in Foreign Currency (FC)
- * as well as cumulative INR values with respect to each fund entry's rate.
- * Sales without a fund_rate snapshot are excluded from cost/profit.
+ * as well as cumulative INR values using the FIFO (First-In, First-Out) method.
+ * Sales chronologically consume fund tranches in order of acquisition.
+ * Sales without a fund_rate snapshot (legacy) are excluded from cost/profit.
  */
 export function calculateFundStats(
   funds: FundEntry[],
@@ -88,14 +89,76 @@ export function calculateFundStats(
     funds.reduce((sum, f) => sum + (f.amount * f.rate), 0)
   );
 
+  if (funds.length === 0) {
+    let totalSalesRevenue = 0;
+    for (const sale of sales) {
+      if (!sale.sale_details) continue;
+      const saleCancels = cancels.filter((c) => c.cancel_details?.sale_id === sale.id);
+      const cancelledAmount = saleCancels.reduce((sum, c) => sum + (c.cancel_details?.amount || 0), 0);
+      const netSaleAmount = round2((sale.sale_details.amount || 0) - cancelledAmount);
+      totalSalesRevenue = round2(totalSalesRevenue + netSaleAmount);
+    }
+    return {
+      totalFunded: 0,
+      totalFundCost: 0,
+      remainingFund: 0,
+      totalSalesRevenue,
+      totalProfit: totalSalesRevenue,
+      totalFundedINR: 0,
+      totalFundCostINR: 0,
+      remainingFundINR: 0,
+      totalProfitINR: 0,
+    };
+  }
+
+  // Sort funds chronologically (oldest first) for FIFO
+  const sortedFunds = [...funds].sort((a, b) => {
+    const cmp = a.date.localeCompare(b.date);
+    if (cmp !== 0) return cmp;
+    return (a.created_at || '').localeCompare(b.created_at || '');
+  });
+
+  // Track each tranche's original and remaining quantities
+  interface Tranche {
+    id: string;
+    originalQty: number;
+    remainingQty: number;
+    rate: number;
+    amount: number;
+    unitCostFC: number;
+    unitCostINR: number;
+  }
+
+  const tranches: Tranche[] = sortedFunds.map((f) => {
+    const originalQty = f.qty > 0 ? f.qty : 1;
+    const unitCostFC = f.amount / originalQty;
+    return {
+      id: f.id,
+      originalQty: f.qty,
+      remainingQty: f.qty,
+      rate: f.rate,
+      amount: f.amount,
+      unitCostFC,
+      unitCostINR: unitCostFC * f.rate,
+    };
+  });
+
+  // Sort sales chronologically (oldest first)
+  const sortedSales = [...sales].sort((a, b) => {
+    const cmp = a.date.localeCompare(b.date);
+    if (cmp !== 0) return cmp;
+    return (a.created_at || '').localeCompare(b.created_at || '');
+  });
+
   let totalFundCost = 0;
   let totalFundCostINR = 0;
   let totalSalesRevenue = 0;
-  let totalProfitINR = 0;
+  let totalSalesRevenueINR = 0;
+  let currentTrancheIdx = 0;
 
-  for (const sale of sales) {
+  for (const sale of sortedSales) {
     if (!sale.sale_details) continue;
-    const { qty, rate, fund_rate, fund_cost } = sale.sale_details;
+    const { qty, rate, fund_rate } = sale.sale_details;
 
     const saleCancels = cancels.filter(
       (c) => c.cancel_details?.sale_id === sale.id
@@ -113,24 +176,62 @@ export function calculateFundStats(
     const netSaleAmount = round2((sale.sale_details.amount || 0) - cancelledAmount);
     totalSalesRevenue = round2(totalSalesRevenue + netSaleAmount);
 
-    if (fund_rate != null && fund_rate > 0) {
-      const baseFundCost = fund_cost ?? computeFundCost(qty, fund_rate);
-      const cancelledFundCost = round2((cancelledQty * fund_rate) / 100);
-      const netFundCost = round2(baseFundCost - cancelledFundCost);
-      totalFundCost = round2(totalFundCost + netFundCost);
+    // Skip sales with no net quantity or legacy sales without fund_rate
+    if (fund_rate == null || fund_rate <= 0 || netQty <= 0) {
+      continue;
+    }
 
-      const netFundCostINR = round2(netFundCost * fund_rate);
-      totalFundCostINR = round2(totalFundCostINR + netFundCostINR);
+    // Consume netQty from fund tranches in strict FIFO order
+    let remainingToConsume = netQty;
 
-      const saleProfit = round2(netSaleAmount - netFundCost);
-      const saleProfitINR = round2(saleProfit * fund_rate);
-      totalProfitINR = round2(totalProfitINR + saleProfitINR);
+    while (remainingToConsume > 0.000001 && currentTrancheIdx < tranches.length) {
+      const tranche = tranches[currentTrancheIdx];
+      const takeQty = Math.min(remainingToConsume, tranche.remainingQty);
+
+      if (takeQty > 0) {
+        const costFC = round4(takeQty * tranche.unitCostFC);
+        const costINR = round4(takeQty * tranche.unitCostINR);
+        totalFundCost += costFC;
+        totalFundCostINR += costINR;
+
+        // Sale revenue portion in INR allocated to this tranche's rate
+        const revenuePortionFC = (takeQty * rate) / 100;
+        const revenuePortionINR = revenuePortionFC * tranche.rate;
+        totalSalesRevenueINR += revenuePortionINR;
+
+        tranche.remainingQty = round4(tranche.remainingQty - takeQty);
+        remainingToConsume = round4(remainingToConsume - takeQty);
+      }
+
+      if (tranche.remainingQty <= 0.000001) {
+        currentTrancheIdx++;
+      }
+    }
+
+    // Overdraft fallback: If sales exceed all available fund tranches
+    if (remainingToConsume > 0.000001) {
+      const fallbackRate = tranches[tranches.length - 1].rate;
+      const fallbackUnitCostFC = tranches[tranches.length - 1].unitCostFC;
+      const costFC = round4(remainingToConsume * fallbackUnitCostFC);
+      const costINR = round4(remainingToConsume * fallbackUnitCostFC * fallbackRate);
+      totalFundCost += costFC;
+      totalFundCostINR += costINR;
+
+      const revenuePortionFC = (remainingToConsume * rate) / 100;
+      const revenuePortionINR = revenuePortionFC * fallbackRate;
+      totalSalesRevenueINR += revenuePortionINR;
     }
   }
+
+  totalFundCost = round4(totalFundCost);
+  totalFundCostINR = round2(totalFundCostINR);
+  totalSalesRevenue = round2(totalSalesRevenue);
+  totalSalesRevenueINR = round2(totalSalesRevenueINR);
 
   const remainingFund = round4(totalFunded - totalFundCost);
   const totalProfit = round4(totalSalesRevenue - totalFundCost);
   const remainingFundINR = round2(totalFundedINR - totalFundCostINR);
+  const totalProfitINR = round2(totalSalesRevenueINR - totalFundCostINR);
 
   return {
     totalFunded,
