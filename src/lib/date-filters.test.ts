@@ -31,6 +31,13 @@ describe('Date Filter Helpers', () => {
     });
   });
 
+  it('computes last2 bounds correctly', () => {
+    expect(getDateRangeForPreset('last2', baseDate)).toEqual({
+      fromDate: '2026-11-23',
+      toDate: '2026-11-25',
+    });
+  });
+
   it('handles month and year rollover for yesterday and last_month', () => {
     const janFirst = new Date(2026, 0, 1);
     expect(getDateRangeForPreset('yesterday', janFirst)).toEqual({
