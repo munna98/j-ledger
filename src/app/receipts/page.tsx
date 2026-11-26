@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Plus,
   Edit2,
@@ -25,16 +26,31 @@ import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 import { triggerHaptic } from '@/lib/haptics';
+import { cn } from '@/lib/utils';
 
-export default function ReceiptsPage() {
+function ReceiptsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightParam = searchParams.get('highlight');
+
   const [receipts, setReceipts] = React.useState<Transaction[]>([]);
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [entries, setEntries] = React.useState<Entry[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [highlightedId, setHighlightedId] = React.useState<string | null>(highlightParam || null);
 
   // Search and Mode Filter
   const [searchQuery, setSearchQuery] = React.useState('');
   const [modeFilter, setModeFilter] = React.useState<'all' | 'bank' | 'cash'>('all');
+
+  // If drilled from Statement, ensure receipt is visible
+  React.useEffect(() => {
+    if (highlightParam) {
+      setSearchQuery('');
+      setModeFilter('all');
+      setHighlightedId(highlightParam);
+    }
+  }, [highlightParam]);
 
   // Form Modal State
   const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -72,6 +88,21 @@ export default function ReceiptsPage() {
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Scroll to drilled receipt
+  React.useEffect(() => {
+    if (!loading && highlightedId) {
+      const timer = setTimeout(() => {
+        const el =
+          document.getElementById(`receipt-${highlightedId}`) ||
+          document.getElementById(`mobile-receipt-${highlightedId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, highlightedId]);
 
   const selectedAgent = React.useMemo(() => {
     return agents.find((a) => a.id === agentId) || null;
@@ -235,6 +266,30 @@ export default function ReceiptsPage() {
         </Button>
       </div>
 
+      {/* Drilled Notice Banner */}
+      {highlightedId && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="font-bold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-md bg-emerald-200/60 dark:bg-emerald-800/60 text-emerald-800 dark:text-emerald-200">
+              Drill Mode
+            </span>
+            <span>
+              Viewing receipt <code className="font-mono font-bold bg-white/70 dark:bg-slate-900/70 px-1.5 py-0.5 rounded">{highlightedId}</code> drilled from Statement.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setHighlightedId(null);
+              router.replace('/receipts');
+            }}
+            className="font-semibold text-emerald-700 dark:text-emerald-300 hover:underline cursor-pointer"
+          >
+            Clear Highlight
+          </button>
+        </div>
+      )}
+
       {/* KPI Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -369,7 +424,14 @@ export default function ReceiptsPage() {
                   const agent = agents.find((a) => a.id === details.agent_id);
 
                   return (
-                    <tr key={rec.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                    <tr
+                      key={rec.id}
+                      id={`receipt-${rec.id}`}
+                      className={cn(
+                        'hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors',
+                        rec.id === highlightedId && 'ring-2 ring-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 shadow-sm'
+                      )}
+                    >
                       <td className="px-5 py-4 font-mono text-xs text-slate-600 dark:text-slate-400">
                         {formatDate(rec.date)}
                       </td>
@@ -443,7 +505,11 @@ export default function ReceiptsPage() {
               return (
                 <div
                   key={rec.id}
-                  className="bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 shadow-2xs space-y-3"
+                  id={`mobile-receipt-${rec.id}`}
+                  className={cn(
+                    'bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 shadow-2xs space-y-3',
+                    rec.id === highlightedId && 'ring-2 ring-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 shadow-sm'
+                  )}
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -714,5 +780,13 @@ export default function ReceiptsPage() {
         <Plus className="h-6 w-6 stroke-[2.5]" />
       </button>
     </div>
+  );
+}
+
+export default function ReceiptsPage() {
+  return (
+    <React.Suspense fallback={<div className="p-8 text-center text-slate-500">Loading receipts...</div>}>
+      <ReceiptsContent />
+    </React.Suspense>
   );
 }

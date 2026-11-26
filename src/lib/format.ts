@@ -23,6 +23,22 @@ export function formatExpense(val: number | string | null | undefined): string {
 }
 
 /**
+ * Formats an amount into Indian Rupees (INR) with standard 2 decimal places and the ₹ symbol.
+ * Uses Indian numbering format (e.g. ₹1,00,000.00).
+ * Handles negative numbers cleanly (e.g. -₹500.00).
+ */
+export function formatINR(val: number | string | null | undefined): string {
+  if (val === null || val === undefined || val === '') return '₹0.00';
+  const num = typeof val === 'number' ? val : parseFloat(String(val));
+  if (isNaN(num)) return '₹0.00';
+  const formatted = Math.abs(num).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return num < 0 ? `-₹${formatted}` : `₹${formatted}`;
+}
+
+/**
  * Formats a date string (YYYY-MM-DD or ISO) into dd-mm-yy format.
  * Example: "2026-11-10" -> "10-11-26"
  */

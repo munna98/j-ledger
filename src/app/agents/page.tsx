@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Plus,
   Edit2,
@@ -28,15 +29,29 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-export default function AgentsPage() {
+function AgentsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightParam = searchParams.get('highlight');
+
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [categories, setCategories] = React.useState<RateCategory[]>([]);
   const [entries, setEntries] = React.useState<Entry[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [highlightedId, setHighlightedId] = React.useState<string | null>(highlightParam || null);
 
   // Search and Balance Filter
   const [searchQuery, setSearchQuery] = React.useState('');
   const [balanceFilter, setBalanceFilter] = React.useState<'all' | 'dr' | 'cr' | 'settled'>('all');
+
+  // If drilled from Statement, ensure agent is visible
+  React.useEffect(() => {
+    if (highlightParam) {
+      setSearchQuery('');
+      setBalanceFilter('all');
+      setHighlightedId(highlightParam);
+    }
+  }, [highlightParam]);
 
   // Form modal state
   const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -84,6 +99,21 @@ export default function AgentsPage() {
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Scroll to drilled agent
+  React.useEffect(() => {
+    if (!loading && highlightedId) {
+      const timer = setTimeout(() => {
+        const el =
+          document.getElementById(`agent-${highlightedId}`) ||
+          document.getElementById(`mobile-agent-${highlightedId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, highlightedId]);
 
   const selectedCategory = React.useMemo(() => {
     return categories.find((c) => c.id === categoryId) || categories[0] || null;
@@ -299,6 +329,30 @@ export default function AgentsPage() {
         </Button>
       </div>
 
+      {/* Drilled Notice Banner */}
+      {highlightedId && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-xs text-purple-900 dark:text-purple-200 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="font-bold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-md bg-purple-200/60 dark:bg-purple-800/60 text-purple-800 dark:text-purple-200">
+              Drill Mode
+            </span>
+            <span>
+              Viewing agent <code className="font-mono font-bold bg-white/70 dark:bg-slate-900/70 px-1.5 py-0.5 rounded">{highlightedId}</code> account and opening balance setup.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setHighlightedId(null);
+              router.replace('/agents');
+            }}
+            className="font-semibold text-purple-700 dark:text-purple-300 hover:underline cursor-pointer"
+          >
+            Clear Highlight
+          </button>
+        </div>
+      )}
+
       {/* KPI Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -425,7 +479,14 @@ export default function AgentsPage() {
                   const isCr = balance < 0;
 
                   return (
-                    <tr key={agent.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                    <tr
+                      key={agent.id}
+                      id={`agent-${agent.id}`}
+                      className={cn(
+                        'hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors',
+                        agent.id === highlightedId && 'ring-2 ring-purple-500 bg-purple-50/80 dark:bg-purple-950/40 shadow-sm'
+                      )}
+                    >
                       <td className="px-4 py-4 text-center font-mono text-xs text-slate-500 dark:text-slate-400">
                         {index + 1}
                       </td>
@@ -535,7 +596,11 @@ export default function AgentsPage() {
               return (
                 <div
                   key={agent.id}
-                  className="bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 shadow-2xs space-y-3"
+                  id={`mobile-agent-${agent.id}`}
+                  className={cn(
+                    'bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 shadow-2xs space-y-3',
+                    agent.id === highlightedId && 'ring-2 ring-purple-500 bg-purple-50/80 dark:bg-purple-950/40 shadow-sm'
+                  )}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2.5">
@@ -845,5 +910,13 @@ export default function AgentsPage() {
         onConfirm={handleDeleteConfirm}
       />
     </div>
+  );
+}
+
+export default function AgentsPage() {
+  return (
+    <React.Suspense fallback={<div className="p-8 text-center text-slate-500">Loading agents...</div>}>
+      <AgentsContent />
+    </React.Suspense>
   );
 }

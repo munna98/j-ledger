@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Plus,
   Edit2,
@@ -35,8 +36,14 @@ import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 import { triggerHaptic } from '@/lib/haptics';
+import { cn } from '@/lib/utils';
 
-export default function SalesPage() {
+function SalesPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightParam = searchParams.get('highlight');
+  const cancelParam = searchParams.get('cancel_id');
+
   const [sales, setSales] = React.useState<Transaction[]>([]);
   const [cancels, setCancels] = React.useState<Transaction[]>([]);
   const [agents, setAgents] = React.useState<Agent[]>([]);
@@ -51,13 +58,21 @@ export default function SalesPage() {
   const [datePreset, setDatePreset] = React.useState<DateFilterPreset>('today');
   const [fromDate, setFromDate] = React.useState('');
   const [toDate, setToDate] = React.useState('');
+  const [highlightedId, setHighlightedId] = React.useState<string | null>(highlightParam || cancelParam || null);
 
-  // Initialize default "Today" date range on client mount to avoid SSR/build-date mismatch
+  // Initialize date range: if drilled from Statement, show 'all' so transaction is not filtered out
   React.useEffect(() => {
-    const range = getDateRangeForPreset('today');
-    setFromDate(range.fromDate);
-    setToDate(range.toDate);
-  }, []);
+    if (highlightParam || cancelParam) {
+      setDatePreset('all');
+      setFromDate('');
+      setToDate('');
+      setHighlightedId(cancelParam || highlightParam);
+    } else {
+      const range = getDateRangeForPreset('today');
+      setFromDate(range.fromDate);
+      setToDate(range.toDate);
+    }
+  }, [highlightParam, cancelParam]);
 
   // Expanded cancels for each sale
   const [expandedSaleIds, setExpandedSaleIds] = React.useState<Set<string>>(new Set());
@@ -124,6 +139,33 @@ export default function SalesPage() {
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // If drilled from Statement to a cancel, auto-expand the parent sale
+  React.useEffect(() => {
+    if (cancels.length > 0 && (cancelParam || highlightParam)) {
+      const targetCancel = cancels.find((c) => c.id === cancelParam || c.id === highlightParam);
+      if (targetCancel?.cancel_details?.sale_id) {
+        setExpandedSaleIds((prev) => new Set([...prev, targetCancel.cancel_details!.sale_id]));
+      }
+    }
+  }, [cancels, cancelParam, highlightParam]);
+
+  // Scroll to drilled transaction
+  React.useEffect(() => {
+    if (!loading && highlightedId) {
+      const targetId = cancelParam || highlightParam;
+      const timer = setTimeout(() => {
+        const el =
+          document.getElementById(`sale-${targetId}`) ||
+          document.getElementById(`cancel-${targetId}`) ||
+          document.getElementById(`mobile-sale-${targetId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, highlightedId, cancelParam, highlightParam]);
 
   // Selected agent for context in sale form
   const selectedFormAgent = React.useMemo(() => {
@@ -472,6 +514,44 @@ export default function SalesPage() {
         </Button>
       </div>
 
+      {/* Drilled Notice Banner */}
+      {highlightedId && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs text-indigo-900 dark:text-indigo-200 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="font-bold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-md bg-indigo-200/60 dark:bg-indigo-800/60 text-indigo-800 dark:text-indigo-200">
+              Drill Mode
+            </span>
+            <span>
+              Viewing transaction <code className="font-mono font-bold bg-white/70 dark:bg-slate-900/70 px-1.5 py-0.5 rounded">{highlightedId}</code> drilled from Statement.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setHighlightedId(null);
+                router.replace('/sales');
+              }}
+              className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              Clear Highlight
+            </button>
+            <span>•</span>
+            <button
+              type="button"
+              onClick={() => {
+                setHighlightedId(null);
+                applyDatePreset('today');
+                router.replace('/sales');
+              }}
+              className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              Show Today
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Date Range Filter Toolbar */}
       <div className="bg-white dark:bg-[#0e1422] p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] pb-0.5 lg:pb-0">
@@ -686,7 +766,13 @@ export default function SalesPage() {
 
                   return (
                     <React.Fragment key={sale.id}>
-                      <tr className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                      <tr
+                        id={`sale-${sale.id}`}
+                        className={cn(
+                          'hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors',
+                          sale.id === highlightedId && 'ring-2 ring-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/40 shadow-sm'
+                        )}
+                      >
                         <td className="px-3 py-4 text-center">
                           {saleCancels.length > 0 && (
                             <button
@@ -827,7 +913,14 @@ export default function SalesPage() {
                                 </thead>
                                 <tbody className="divide-y divide-amber-100 dark:divide-amber-900/30">
                                   {saleCancels.map((cancel) => (
-                                    <tr key={cancel.id}>
+                                    <tr
+                                      key={cancel.id}
+                                      id={`cancel-${cancel.id}`}
+                                      className={cn(
+                                        cancel.id === highlightedId &&
+                                          'ring-2 ring-amber-500 bg-amber-100/70 dark:bg-amber-900/50 rounded-md'
+                                      )}
+                                    >
                                       <td className="py-2 font-mono">{formatDate(cancel.date)}</td>
                                       <td className="py-2 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
                                         -{cancel.cancel_details?.qty}
@@ -888,7 +981,11 @@ export default function SalesPage() {
               return (
                 <div
                   key={sale.id}
-                  className="bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 shadow-2xs space-y-3"
+                  id={`mobile-sale-${sale.id}`}
+                  className={cn(
+                    'bg-white dark:bg-[#0e1422] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 shadow-2xs space-y-3',
+                    sale.id === highlightedId && 'ring-2 ring-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/40 shadow-sm'
+                  )}
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -1018,7 +1115,11 @@ export default function SalesPage() {
                       {saleCancels.map((cancel) => (
                         <div
                           key={cancel.id}
-                          className="p-2.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 text-xs flex items-center justify-between"
+                          id={`mobile-cancel-${cancel.id}`}
+                          className={cn(
+                            'p-2.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 text-xs flex items-center justify-between',
+                            cancel.id === highlightedId && 'ring-2 ring-amber-500 bg-amber-100/70 dark:bg-amber-900/50'
+                          )}
                         >
                           <div>
                             <div className="font-mono font-bold text-rose-600 dark:text-rose-400">
@@ -1545,5 +1646,13 @@ export default function SalesPage() {
         <Plus className="h-6 w-6 stroke-[2.5]" />
       </button>
     </div>
+  );
+}
+
+export default function SalesPage() {
+  return (
+    <React.Suspense fallback={<div className="p-8 text-center text-slate-500">Loading sales transactions...</div>}>
+      <SalesPageContent />
+    </React.Suspense>
   );
 }

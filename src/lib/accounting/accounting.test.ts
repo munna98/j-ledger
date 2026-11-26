@@ -545,5 +545,15 @@ describe('Accounting Pure Functions & Posting Logic', () => {
 
     // Total Profit = 116.30 - 70 = 46.30
     expect(stats.totalProfit).toBe(46.3);
+
+    // Cumulative INR stats:
+    // f1 (350 * 350 = 122500) + f2 (180 * 360 = 64800) = 187300
+    expect(stats.totalFundedINR).toBe(187300);
+    // s1 cost = 70 * 350 = 24500
+    expect(stats.totalFundCostINR).toBe(24500);
+    // Remaining Fund INR = 187300 - 24500 = 162800
+    expect(stats.remainingFundINR).toBe(162800);
+    // Profit INR = s1 profit (6.30) * 350 = 2205
+    expect(stats.totalProfitINR).toBe(2205);
   });
 });

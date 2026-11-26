@@ -11,10 +11,11 @@ import {
   PieChart,
   ArrowDownRight,
   Search,
+  IndianRupee,
 } from 'lucide-react';
 import { FundEntry, Transaction } from '@/types';
 import { fundRepo, transactionRepo } from '@/lib/repo';
-import { formatNumber, formatDate, formatExpense } from '@/lib/format';
+import { formatNumber, formatDate, formatExpense, formatINR } from '@/lib/format';
 import {
   calculateFundStats,
   FundStats,
@@ -22,6 +23,7 @@ import {
   computeFundExpense,
   computeFundAmount,
 } from '@/lib/accounting';
+import { cn } from '@/lib/utils';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { StatCard } from '@/components/ui/stat-card';
@@ -32,6 +34,9 @@ export default function FundPage() {
   const [sales, setSales] = React.useState<Transaction[]>([]);
   const [cancels, setCancels] = React.useState<Transaction[]>([]);
   const [loading, setLoading] = React.useState(true);
+
+  // Currency View State ('FC' or 'INR')
+  const [currency, setCurrency] = React.useState<'FC' | 'INR'>('FC');
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -72,10 +77,33 @@ export default function FundPage() {
     loadData();
   }, [loadData]);
 
-  // Derived stats
+  // Load saved currency view preference on mount
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedCurrency = localStorage.getItem('j_ledger_fund_currency_view') as 'FC' | 'INR' | null;
+      if (savedCurrency === 'FC' || savedCurrency === 'INR') {
+        setCurrency(savedCurrency);
+      }
+    }
+  }, []);
+
+  const handleCurrencyChange = (newCurrency: 'FC' | 'INR') => {
+    setCurrency(newCurrency);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('j_ledger_fund_currency_view', newCurrency);
+    }
+  };
+
+  // Derived stats (both FC and cumulative INR)
   const stats: FundStats = React.useMemo(() => {
     return calculateFundStats(funds, sales, cancels);
   }, [funds, sales, cancels]);
+
+  // Weighted average fund acquisition rate across all entries
+  const weightedAvgRate = React.useMemo(() => {
+    if (stats.totalFunded <= 0) return 0;
+    return stats.totalFundedINR / stats.totalFunded;
+  }, [stats.totalFunded, stats.totalFundedINR]);
 
   // Filtered funds
   const filteredFunds = React.useMemo(() => {
@@ -206,31 +234,114 @@ export default function FundPage() {
         </Button>
       </div>
 
+      {/* Currency View Controls */}
+      <div className="bg-white dark:bg-[#0e1422] p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Currency:
+          </span>
+          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => handleCurrencyChange('FC')}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5',
+                currency === 'FC'
+                  ? 'bg-white dark:bg-slate-800 text-violet-600 dark:text-violet-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              )}
+            >
+              <DollarSign className="h-3.5 w-3.5" />
+              <span>Foreign Currency (FC)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCurrencyChange('INR')}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer',
+                currency === 'INR'
+                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              )}
+            >
+              <IndianRupee className="h-3.5 w-3.5" />
+              <span>Indian Rupee (INR)</span>
+            </button>
+          </div>
+        </div>
+
+        {currency === 'INR' && (
+          <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-medium border border-emerald-200/60 dark:border-emerald-800/60">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Cumulative by fund entry rates</span>
+            </span>
+            {weightedAvgRate > 0 && (
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                (Weighted Avg: ₹{formatExpense(weightedAvgRate)}/FC)
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* KPI Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Funded"
-          value={formatExpense(stats.totalFunded)}
-          icon={DollarSign}
+          title={currency === 'INR' ? 'Total Funded (INR)' : 'Total Funded'}
+          value={
+            currency === 'INR'
+              ? formatINR(stats.totalFundedINR)
+              : formatExpense(stats.totalFunded)
+          }
+          subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.totalFunded)} FC` : undefined}
+          badge={currency === 'INR' ? 'Cumulative' : undefined}
+          icon={currency === 'INR' ? IndianRupee : DollarSign}
           variant="blue"
         />
         <StatCard
-          title="Fund Used (Cost)"
-          value={formatExpense(stats.totalFundCost)}
+          title={currency === 'INR' ? 'Fund Used (INR)' : 'Fund Used (Cost)'}
+          value={
+            currency === 'INR'
+              ? formatINR(stats.totalFundCostINR)
+              : formatExpense(stats.totalFundCost)
+          }
+          subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.totalFundCost)} FC` : undefined}
+          badge={currency === 'INR' ? 'Cumulative' : undefined}
           icon={ArrowDownRight}
           variant="amber"
         />
         <StatCard
-          title="Remaining Fund"
-          value={formatExpense(stats.remainingFund)}
+          title={currency === 'INR' ? 'Remaining Fund (INR)' : 'Remaining Fund'}
+          value={
+            currency === 'INR'
+              ? formatINR(stats.remainingFundINR)
+              : formatExpense(stats.remainingFund)
+          }
+          subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.remainingFund)} FC` : undefined}
+          badge={currency === 'INR' ? 'Cumulative' : undefined}
           icon={PieChart}
-          variant={stats.remainingFund < 0 ? 'rose' : 'emerald'}
+          variant={
+            (currency === 'INR' ? stats.remainingFundINR < 0 : stats.remainingFund < 0)
+              ? 'rose'
+              : 'emerald'
+          }
         />
         <StatCard
-          title="Total Profit"
-          value={formatExpense(stats.totalProfit)}
+          title={currency === 'INR' ? 'Total Profit (INR)' : 'Total Profit'}
+          value={
+            currency === 'INR'
+              ? formatINR(stats.totalProfitINR)
+              : formatExpense(stats.totalProfit)
+          }
+          subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.totalProfit)} FC` : undefined}
+          badge={currency === 'INR' ? 'Cumulative' : undefined}
           icon={TrendingUp}
-          variant={stats.totalProfit >= 0 ? 'emerald' : 'rose'}
+          variant={
+            (currency === 'INR' ? stats.totalProfitINR >= 0 : stats.totalProfit >= 0)
+              ? 'emerald'
+              : 'rose'
+          }
         />
       </div>
 

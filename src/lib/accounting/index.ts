@@ -67,10 +67,15 @@ export interface FundStats {
   remainingFund: number;
   totalSalesRevenue: number;
   totalProfit: number;
+  totalFundedINR: number;
+  totalFundCostINR: number;
+  remainingFundINR: number;
+  totalProfitINR: number;
 }
 
 /**
- * Calculates aggregated fund-level statistics.
+ * Calculates aggregated fund-level statistics in Foreign Currency (FC)
+ * as well as cumulative INR values with respect to each fund entry's rate.
  * Sales without a fund_rate snapshot are excluded from cost/profit.
  */
 export function calculateFundStats(
@@ -79,9 +84,14 @@ export function calculateFundStats(
   cancels: Transaction[]
 ): FundStats {
   const totalFunded = round4(funds.reduce((sum, f) => sum + f.amount, 0));
+  const totalFundedINR = round2(
+    funds.reduce((sum, f) => sum + (f.amount * f.rate), 0)
+  );
 
   let totalFundCost = 0;
+  let totalFundCostINR = 0;
   let totalSalesRevenue = 0;
+  let totalProfitINR = 0;
 
   for (const sale of sales) {
     if (!sale.sale_details) continue;
@@ -108,11 +118,19 @@ export function calculateFundStats(
       const cancelledFundCost = round2((cancelledQty * fund_rate) / 100);
       const netFundCost = round2(baseFundCost - cancelledFundCost);
       totalFundCost = round2(totalFundCost + netFundCost);
+
+      const netFundCostINR = round2(netFundCost * fund_rate);
+      totalFundCostINR = round2(totalFundCostINR + netFundCostINR);
+
+      const saleProfit = round2(netSaleAmount - netFundCost);
+      const saleProfitINR = round2(saleProfit * fund_rate);
+      totalProfitINR = round2(totalProfitINR + saleProfitINR);
     }
   }
 
   const remainingFund = round4(totalFunded - totalFundCost);
   const totalProfit = round4(totalSalesRevenue - totalFundCost);
+  const remainingFundINR = round2(totalFundedINR - totalFundCostINR);
 
   return {
     totalFunded,
@@ -120,6 +138,10 @@ export function calculateFundStats(
     remainingFund,
     totalSalesRevenue,
     totalProfit,
+    totalFundedINR,
+    totalFundCostINR,
+    remainingFundINR,
+    totalProfitINR,
   };
 }
 
@@ -618,6 +640,14 @@ export function calculateAgentStatement(
       }
     }
 
+    let txType = tx?.type;
+    if (!txType) {
+      if (typeStr === 'Sale') txType = 'sale';
+      else if (typeStr === 'Receipt') txType = 'receipt';
+      else if (typeStr === 'Cancel') txType = 'sale_cancel';
+      else if (typeStr === 'Opening Balance') txType = 'opening_balance';
+    }
+
     rows.push({
       date: entry.date,
       type: typeStr,
@@ -629,7 +659,7 @@ export function calculateAgentStatement(
       balance: Math.abs(runningBalance),
       balanceType: rowBalType,
       transaction_id: entry.transaction_id,
-      transaction_type: tx?.type,
+      transaction_type: txType,
     });
   }
 

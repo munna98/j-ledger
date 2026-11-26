@@ -705,4 +705,41 @@ describe('Account Statement & Ledger Table - Date Filter Verification', () => {
     );
     expect(allStatement.rows).toHaveLength(7);
   });
+
+  it('15. Verifies transaction_id and transaction_type drill references on statement rows', () => {
+    const statement = calculateAgentStatement(
+      allEntries,
+      testAgent,
+      '2026-01-05',
+      '2026-01-20',
+      allTransactions
+    );
+
+    // Rows: s1 (sale), r1 (receipt), s2 (sale), c1 (cancel)
+    expect(statement.rows).toHaveLength(4);
+
+    expect(statement.rows[0].transaction_id).toBe('tx_s1');
+    expect(statement.rows[0].transaction_type).toBe('sale');
+
+    expect(statement.rows[1].transaction_id).toBe('tx_r1');
+    expect(statement.rows[1].transaction_type).toBe('receipt');
+
+    expect(statement.rows[2].transaction_id).toBe('tx_s2');
+    expect(statement.rows[2].transaction_type).toBe('sale');
+
+    expect(statement.rows[3].transaction_id).toBe('tx_c1');
+    expect(statement.rows[3].transaction_type).toBe('sale_cancel');
+
+    // Also verify fallback when transactions array is omitted
+    const fallbackStatement = calculateAgentStatement(
+      allEntries,
+      testAgent,
+      '2026-01-05',
+      '2026-01-10'
+    );
+    expect(fallbackStatement.rows[0].transaction_id).toBe('tx_s1');
+    expect(fallbackStatement.rows[0].transaction_type).toBe('sale');
+    expect(fallbackStatement.rows[1].transaction_id).toBe('tx_r1');
+    expect(fallbackStatement.rows[1].transaction_type).toBe('receipt');
+  });
 });
