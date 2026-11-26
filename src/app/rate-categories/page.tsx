@@ -12,8 +12,8 @@ import { Button } from '@/components/ui/button';
 
 interface SlabRowInput {
   id: string;
-  from_qty: number;
-  rate: number;
+  from_qty: number | string;
+  rate: number | string;
 }
 
 export default function RateCategoriesPage() {
@@ -53,10 +53,10 @@ export default function RateCategoriesPage() {
     setEditingCategory(null);
     setName('');
     setSlabs([
-      { id: 'slab_4', from_qty: 100, rate: 375 },
-      { id: 'slab_3', from_qty: 50, rate: 380 },
-      { id: 'slab_2', from_qty: 25, rate: 381.5 },
-      { id: 'slab_1', from_qty: 1, rate: 385 },
+      { id: 'slab_4', from_qty: '100', rate: '375' },
+      { id: 'slab_3', from_qty: '50', rate: '380' },
+      { id: 'slab_2', from_qty: '25', rate: '381.5' },
+      { id: 'slab_1', from_qty: '1', rate: '385' },
     ]);
     setFormError(null);
     setIsFormOpen(true);
@@ -66,20 +66,21 @@ export default function RateCategoriesPage() {
     setEditingCategory(cat);
     setName(cat.name);
     const sortedDesc = [...cat.slabs].sort((a, b) => b.from_qty - a.from_qty);
-    setSlabs(sortedDesc.map((s) => ({ ...s })));
+    setSlabs(sortedDesc.map((s) => ({ ...s, from_qty: String(s.from_qty), rate: String(s.rate) })));
     setFormError(null);
     setIsFormOpen(true);
   };
 
   const handleAddSlab = () => {
     const highest = slabs[0];
-    const nextFrom = highest ? (highest.from_qty <= 1 ? 25 : highest.from_qty + 25) : 25;
-    const nextRate = highest ? highest.rate : 100;
+    const highestFrom = highest ? Number(highest.from_qty) || 0 : 0;
+    const nextFrom = highest ? (highestFrom <= 1 ? 25 : highestFrom + 25) : 25;
+    const nextRate = highest ? highest.rate : '100';
     setSlabs([
       {
         id: `slab_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
-        from_qty: nextFrom,
-        rate: nextRate,
+        from_qty: String(nextFrom),
+        rate: String(nextRate),
       },
       ...slabs,
     ]);
@@ -91,7 +92,7 @@ export default function RateCategoriesPage() {
     setSlabs(next);
   };
 
-  const handleSlabChange = (index: number, field: 'from_qty' | 'rate', value: number) => {
+  const handleSlabChange = (index: number, field: 'from_qty' | 'rate', value: string) => {
     const next = [...slabs];
     next[index] = { ...next[index], [field]: value };
     setSlabs(next);
@@ -106,7 +107,13 @@ export default function RateCategoriesPage() {
       return;
     }
 
-    const validation = validateSlabs(slabs);
+    const parsedSlabs = slabs.map((s) => ({
+      id: s.id,
+      from_qty: typeof s.from_qty === 'number' ? s.from_qty : parseInt(String(s.from_qty), 10) || 0,
+      rate: typeof s.rate === 'number' ? s.rate : parseFloat(String(s.rate)) || 0,
+    }));
+
+    const validation = validateSlabs(parsedSlabs);
     if (!validation.valid) {
       setFormError(validation.error || 'Invalid slabs');
       return;
@@ -114,7 +121,7 @@ export default function RateCategoriesPage() {
 
     try {
       setIsSubmitting(true);
-      const sortedSlabs = [...slabs].sort((a, b) => a.from_qty - b.from_qty);
+      const sortedSlabs = [...parsedSlabs].sort((a, b) => a.from_qty - b.from_qty);
 
       if (editingCategory) {
         await rateCategoryRepo.update(editingCategory.id, {
@@ -333,12 +340,18 @@ export default function RateCategoriesPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                     {slabs.map((slab, index) => {
-                      const higherSlabs = slabs.filter((s) => s.from_qty > slab.from_qty);
+                      const currentFrom = Number(slab.from_qty) || 0;
+                      const higherSlabs = slabs.filter((s) => (Number(s.from_qty) || 0) > currentFrom);
                       const nextHigherSlab =
                         higherSlabs.length > 0
-                          ? higherSlabs.reduce((min, s) => (s.from_qty < min.from_qty ? s : min))
+                          ? higherSlabs.reduce((min, s) => ((Number(s.from_qty) || 0) < (Number(min.from_qty) || 0) ? s : min))
                           : undefined;
-                      const derivedRange = getSlabRangeLabel(slab, nextHigherSlab);
+                      const derivedRange = getSlabRangeLabel(
+                        { ...slab, from_qty: currentFrom, rate: Number(slab.rate) || 0 },
+                        nextHigherSlab
+                          ? { ...nextHigherSlab, from_qty: Number(nextHigherSlab.from_qty) || 0, rate: Number(nextHigherSlab.rate) || 0 }
+                          : undefined
+                      );
                       const isBaseSlab = index === slabs.length - 1;
 
                       return (
@@ -350,7 +363,7 @@ export default function RateCategoriesPage() {
                               min={isBaseSlab ? 0 : 1}
                               value={slab.from_qty}
                               onChange={(e) =>
-                                handleSlabChange(index, 'from_qty', parseInt(e.target.value) || 0)
+                                handleSlabChange(index, 'from_qty', e.target.value)
                               }
                               className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm font-mono"
                             />
@@ -360,15 +373,17 @@ export default function RateCategoriesPage() {
                           </td>
                           <td className="px-3.5 py-2">
                             <input
-                              type="number"
+                              type="text"
                               inputMode="decimal"
-                              step="0.01"
-                              min="0.01"
                               required
+                              placeholder="0.00"
                               value={slab.rate}
-                              onChange={(e) =>
-                                handleSlabChange(index, 'rate', parseFloat(e.target.value) || 0)
-                              }
+                              onChange={(e) => {
+                                const val = e.target.value.replace(',', '.');
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                  handleSlabChange(index, 'rate', val);
+                                }
+                              }}
                               className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-base sm:text-sm font-mono text-right"
                             />
                           </td>
