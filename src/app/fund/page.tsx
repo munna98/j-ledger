@@ -99,12 +99,6 @@ export default function FundPage() {
     return calculateFundStats(funds, sales, cancels);
   }, [funds, sales, cancels]);
 
-  // Weighted average fund acquisition rate across all entries
-  const weightedAvgRate = React.useMemo(() => {
-    if (stats.totalFunded <= 0) return 0;
-    return stats.totalFundedINR / stats.totalFunded;
-  }, [stats.totalFunded, stats.totalFundedINR]);
-
   // Filtered funds
   const filteredFunds = React.useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -221,62 +215,50 @@ export default function FundPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
       {/* Page Header */}
-      <div className="flex flex-row items-center justify-between gap-4 pb-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
             <Wallet className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <span>Fund & Profit Management</span>
         </h1>
-        <Button onClick={openCreateModal} className="shrink-0">
-          <Plus className="h-4 w-4" />
-          <span>Add Fund</span>
-        </Button>
-      </div>
 
-      {/* Currency View Controls */}
-      <div className="bg-white dark:bg-[#0e1422] p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Currency:
-          </span>
+        <div className="flex items-center gap-2.5 self-end sm:self-auto">
+          {/* Currency Toggle (FC / INR) */}
           <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800">
             <button
               type="button"
               onClick={() => handleCurrencyChange('FC')}
               className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5',
+                'px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1',
                 currency === 'FC'
                   ? 'bg-white dark:bg-slate-800 text-violet-600 dark:text-violet-400 shadow-2xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               )}
             >
               <DollarSign className="h-3.5 w-3.5" />
-              <span>Foreign Currency (FC)</span>
+              <span>FC</span>
             </button>
             <button
               type="button"
               onClick={() => handleCurrencyChange('INR')}
               className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer',
+                'px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer',
                 currency === 'INR'
                   ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               )}
             >
               <IndianRupee className="h-3.5 w-3.5" />
-              <span>Indian Rupee (INR)</span>
+              <span>INR</span>
             </button>
           </div>
-        </div>
 
-        {currency === 'INR' && weightedAvgRate > 0 && (
-          <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-              (Weighted Avg: ₹{formatExpense(weightedAvgRate)}/FC)
-            </span>
-          </div>
-        )}
+          <Button onClick={openCreateModal} className="shrink-0">
+            <Plus className="h-4 w-4" />
+            <span>Add Fund</span>
+          </Button>
+        </div>
       </div>
 
       {/* KPI Overview Cards */}
