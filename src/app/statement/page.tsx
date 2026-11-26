@@ -117,7 +117,7 @@ function StatementContent() {
   const [selectedAgentId, setSelectedAgentId] = React.useState<string>(queryAgentId || '');
   const [fromDate, setFromDate] = React.useState<string>('');
   const [toDate, setToDate] = React.useState<string>('');
-  const [activePreset, setActivePreset] = React.useState<'month' | 'last7' | 'last30' | 'all' | 'custom'>('month');
+  const [activePreset, setActivePreset] = React.useState<'month' | 'last2' | 'last7' | 'last30' | 'all' | 'custom'>('month');
   const [loading, setLoading] = React.useState<boolean>(true);
   const [isSharingWhatsApp, setIsSharingWhatsApp] = React.useState<boolean>(false);
   const [copiedNotice, setCopiedNotice] = React.useState<boolean>(false);
@@ -185,7 +185,7 @@ function StatementContent() {
     );
   }, [entries, selectedAgent, fromDate, toDate, transactions]);
 
-  const setPreset = (preset: 'month' | 'last7' | 'last30' | 'all') => {
+  const setPreset = (preset: 'month' | 'last2' | 'last7' | 'last30' | 'all') => {
     setActivePreset(preset);
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -195,6 +195,14 @@ function StatementContent() {
 
     if (preset === 'month') {
       setFromDate(`${yyyy}-${mm}-01`);
+      setToDate(todayStr);
+    } else if (preset === 'last2') {
+      const past = new Date();
+      past.setDate(past.getDate() - 2);
+      const pY = past.getFullYear();
+      const pM = String(past.getMonth() + 1).padStart(2, '0');
+      const pD = String(past.getDate()).padStart(2, '0');
+      setFromDate(`${pY}-${pM}-${pD}`);
       setToDate(todayStr);
     } else if (preset === 'last7') {
       const past = new Date();
@@ -546,6 +554,18 @@ function StatementContent() {
             }`}
           >
             This Month
+          </button>
+          <span className="hidden sm:inline text-slate-300 dark:text-slate-700 shrink-0">•</span>
+          <button
+            type="button"
+            onClick={() => setPreset('last2')}
+            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activePreset === 'last2'
+                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            Last 2 Days
           </button>
           <span className="hidden sm:inline text-slate-300 dark:text-slate-700 shrink-0">•</span>
           <button

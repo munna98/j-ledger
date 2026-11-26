@@ -626,7 +626,7 @@ describe('Account Statement & Ledger Table - Date Filter Verification', () => {
   it('14. Quick Date Range Presets logic simulation', () => {
     // Helper replicating setPreset logic from StatementPage
     function getPresetDates(
-      preset: 'month' | 'last7' | 'last30' | 'all',
+      preset: 'month' | 'last2' | 'last7' | 'last30' | 'all',
       baseDate: Date
     ): { fromDate: string; toDate: string } {
       const yyyy = baseDate.getFullYear();
@@ -636,6 +636,13 @@ describe('Account Statement & Ledger Table - Date Filter Verification', () => {
 
       if (preset === 'month') {
         return { fromDate: `${yyyy}-${mm}-01`, toDate: todayStr };
+      } else if (preset === 'last2') {
+        const past = new Date(baseDate);
+        past.setDate(past.getDate() - 2);
+        const pY = past.getFullYear();
+        const pM = String(past.getMonth() + 1).padStart(2, '0');
+        const pD = String(past.getDate()).padStart(2, '0');
+        return { fromDate: `${pY}-${pM}-${pD}`, toDate: todayStr };
       } else if (preset === 'last7') {
         const past = new Date(baseDate);
         past.setDate(past.getDate() - 7);
@@ -672,6 +679,24 @@ describe('Account Statement & Ledger Table - Date Filter Verification', () => {
     expect(monthStatement.openingBalance.amount).toBe(0); // 2026-01-01 is in period, not before
     expect(monthStatement.rows).toHaveLength(6); // all 6 Jan entries
     expect(monthStatement.rows.some((r) => r.date === '2026-02-02')).toBe(false);
+
+    // 'last2' preset: 2026-01-23 to 2026-01-25
+    const last2Dates = getPresetDates('last2', testDate);
+    expect(last2Dates.fromDate).toBe('2026-01-23');
+    expect(last2Dates.toDate).toBe('2026-01-25');
+
+    const last2Statement = calculateAgentStatement(
+      allEntries,
+      testAgent,
+      last2Dates.fromDate,
+      last2Dates.toDate,
+      allTransactions
+    );
+    // Before Jan 23: Ob(1000) + s1(80) - r1(500) + s2(190) - c1(38) = 732 Dr
+    expect(last2Statement.openingBalance.amount).toBe(732);
+    // Only Rec2 (300 Cr on 2026-01-25) in this 2-day period
+    expect(last2Statement.rows).toHaveLength(1);
+    expect(last2Statement.rows[0].date).toBe('2026-01-25');
 
     // 'last7' preset: 2026-01-18 to 2026-01-25
     const last7Dates = getPresetDates('last7', testDate);
