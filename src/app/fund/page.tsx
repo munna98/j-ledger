@@ -270,7 +270,6 @@ export default function FundPage() {
               ? formatINR(stats.totalFundedINR)
               : formatExpense(stats.totalFunded)
           }
-          subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.totalFunded)} FC` : undefined}
           icon={currency === 'INR' ? IndianRupee : DollarSign}
           variant="blue"
         />
@@ -281,7 +280,6 @@ export default function FundPage() {
               ? formatINR(stats.totalFundCostINR)
               : formatExpense(stats.totalFundCost)
           }
-          subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.totalFundCost)} FC` : undefined}
           icon={ArrowDownRight}
           variant="amber"
         />
@@ -292,7 +290,6 @@ export default function FundPage() {
               ? formatINR(stats.remainingFundINR)
               : formatExpense(stats.remainingFund)
           }
-          subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.remainingFund)} FC` : undefined}
           icon={PieChart}
           variant={
             (currency === 'INR' ? stats.remainingFundINR < 0 : stats.remainingFund < 0)
@@ -307,7 +304,6 @@ export default function FundPage() {
               ? formatINR(stats.totalProfitINR)
               : formatExpense(stats.totalProfit)
           }
-          subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.totalProfit)} FC` : undefined}
           icon={TrendingUp}
           variant={
             (currency === 'INR' ? stats.totalProfitINR >= 0 : stats.totalProfit >= 0)
