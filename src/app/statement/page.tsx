@@ -270,7 +270,7 @@ function StatementContent() {
     ]);
 
     aoa.push([]);
-    aoa.push(['Powered by J ledger software : 8086094070']);
+    aoa.push(['Powered by J ledger software : +91 8086094070']);
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
 
@@ -310,8 +310,8 @@ function StatementContent() {
       const cleanAgentName = selectedAgent.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
       const fileName = `statement_${cleanAgentName}.png`;
 
-      // Target full desktop dimensions
-      const targetWidth = target.offsetWidth || 1120;
+      // Target dimensions for crisp mobile capture
+      const targetWidth = target.offsetWidth || 840;
       const targetHeight = target.offsetHeight || target.scrollHeight;
 
       // Generate PNG blob from full-view export element
@@ -865,23 +865,23 @@ function StatementContent() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50/80 dark:bg-slate-900/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200/80 dark:border-slate-800/80">
                   <tr>
-                    <th className="px-4 py-3.5 w-28">Date</th>
-                    <th className="px-4 py-3.5 w-32">Type</th>
-                    <th className="px-4 py-3.5">Particulars / Details</th>
-                    <th className="px-4 py-3.5 text-right w-20">Qty</th>
-                    <th className="px-4 py-3.5 text-right w-24">Rate</th>
-                    <th className="px-4 py-3.5 text-right w-28">Debit</th>
-                    <th className="px-4 py-3.5 text-right w-28">Credit</th>
-                    <th className="px-4 py-3.5 text-right w-36">Running Balance</th>
+                    <th className="px-4 py-2.5 w-28">Date</th>
+                    <th className="px-4 py-2.5 w-32">Type</th>
+                    <th className="px-4 py-2.5">Particulars / Details</th>
+                    <th className="px-4 py-2.5 text-right w-20">Qty</th>
+                    <th className="px-4 py-2.5 text-right w-24">Rate</th>
+                    <th className="px-4 py-2.5 text-right w-28">Debit</th>
+                    <th className="px-4 py-2.5 text-right w-28">Credit</th>
+                    <th className="px-4 py-2.5 text-right w-36">Running Balance</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                   {/* First Row: Opening Balance */}
                   <tr className="bg-slate-50/50 dark:bg-slate-900/40 font-medium">
-                    <td className="px-4 py-3.5 font-mono text-xs text-slate-500">
+                    <td className="px-4 py-2.5 font-mono text-xs text-slate-500">
                       {fromDate ? formatDate(fromDate) : '—'}
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-2.5">
                       {selectedAgent ? (
                         <Link
                           href={`/agents?highlight=${selectedAgent.id}`}
@@ -897,14 +897,14 @@ function StatementContent() {
                         <Badge variant="neutral" className="text-[10px]">Opening</Badge>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300 font-medium italic">
+                    <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300 font-medium italic">
                       Brought Forward Opening Balance
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono text-slate-400">—</td>
-                    <td className="px-4 py-3.5 text-right font-mono text-slate-400">—</td>
-                    <td className="px-4 py-3.5 text-right font-mono text-slate-400">—</td>
-                    <td className="px-4 py-3.5 text-right font-mono text-slate-400">—</td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white">
+                    <td className="px-4 py-2.5 text-right font-mono text-slate-400">—</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-slate-400">—</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-slate-400">—</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-slate-400">—</td>
+                    <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-900 dark:text-white">
                       {formatNumber(statement.openingBalance.amount)}
                       {statement.openingBalance.type && (
                         <span className="ml-1 text-xs text-slate-500 font-semibold">
@@ -928,10 +928,10 @@ function StatementContent() {
 
                     return (
                       <tr key={index} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="px-4 py-3.5 font-mono text-xs text-slate-600 dark:text-slate-400">
+                        <td className="px-4 py-2.5 font-mono text-xs text-slate-600 dark:text-slate-400">
                           {formatDate(row.date)}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-2.5">
                           <Link
                             href={drillTarget.url}
                             title={drillTarget.actionLabel}
@@ -947,22 +947,22 @@ function StatementContent() {
                             </Badge>
                           </Link>
                         </td>
-                        <td className="px-4 py-3.5 text-slate-900 dark:text-slate-100 font-medium">
+                        <td className="px-4 py-2.5 text-slate-900 dark:text-slate-100 font-medium">
                           {row.particulars}
                         </td>
-                        <td className="px-4 py-3.5 text-right font-mono text-slate-900 dark:text-white">
+                        <td className="px-4 py-2.5 text-right font-mono text-slate-900 dark:text-white">
                           {row.qty !== undefined && row.qty > 0 ? row.qty : '—'}
                         </td>
-                        <td className="px-4 py-3.5 text-right font-mono text-slate-700 dark:text-slate-300">
+                        <td className="px-4 py-2.5 text-right font-mono text-slate-700 dark:text-slate-300">
                           {row.rate !== undefined && row.rate > 0 ? formatNumber(row.rate) : '—'}
                         </td>
-                        <td className="px-4 py-3.5 text-right font-mono font-semibold text-amber-600 dark:text-amber-400">
+                        <td className="px-4 py-2.5 text-right font-mono font-semibold text-amber-600 dark:text-amber-400">
                           {row.debit > 0 ? formatNumber(row.debit) : '—'}
                         </td>
-                        <td className="px-4 py-3.5 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                        <td className="px-4 py-2.5 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
                           {row.credit > 0 ? formatNumber(row.credit) : '—'}
                         </td>
-                        <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white">
+                        <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-900 dark:text-white">
                           {formatNumber(row.balance)}
                           {row.balanceType && (
                             <span
@@ -992,18 +992,18 @@ function StatementContent() {
                 {/* Totals Row */}
                 <tfoot className="bg-slate-100/90 dark:bg-slate-900 font-bold border-t-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white">
                   <tr>
-                    <td className="px-4 py-4 font-mono text-xs">TOTALS</td>
-                    <td className="px-4 py-4 text-slate-400">—</td>
-                    <td className="px-4 py-4">Total Period Activity & Net Closing</td>
-                    <td className="px-4 py-4 text-right font-mono text-slate-400">—</td>
-                    <td className="px-4 py-4 text-right font-mono text-slate-400">—</td>
-                    <td className="px-4 py-4 text-right font-mono text-base text-amber-600 dark:text-amber-400">
+                    <td className="px-4 py-3 font-mono text-xs">TOTALS</td>
+                    <td className="px-4 py-3 text-slate-400">—</td>
+                    <td className="px-4 py-3">Total Period Activity & Net Closing</td>
+                    <td className="px-4 py-3 text-right font-mono text-slate-400">—</td>
+                    <td className="px-4 py-3 text-right font-mono text-slate-400">—</td>
+                    <td className="px-4 py-3 text-right font-mono text-base text-amber-600 dark:text-amber-400">
                       {formatNumber(statement.totalDebit)}
                     </td>
-                    <td className="px-4 py-4 text-right font-mono text-base text-emerald-600 dark:text-emerald-400">
+                    <td className="px-4 py-3 text-right font-mono text-base text-emerald-600 dark:text-emerald-400">
                       {formatNumber(statement.totalCredit)}
                     </td>
-                    <td className="px-4 py-4 text-right font-mono text-base text-indigo-600 dark:text-indigo-400">
+                    <td className="px-4 py-3 text-right font-mono text-base text-indigo-600 dark:text-indigo-400">
                       {formatNumber(statement.closingBalance.amount)}
                       {statement.closingBalance.type && (
                         <span className="ml-1 text-xs font-bold">
@@ -1017,9 +1017,9 @@ function StatementContent() {
             </div>
 
             {/* Footer Note */}
-            <div className="px-6 py-3.5 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <div className="px-6 py-2.5 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
               <span className="font-medium tracking-wide">
-                Powered by J ledger software : <span className="font-semibold text-slate-700 dark:text-slate-300">8086094070</span>
+                Powered by J ledger software : <span className="font-semibold text-slate-700 dark:text-slate-300">+91 8086094070</span>
               </span>
               <span className="text-[10px] text-slate-400 font-mono">
                 {formatDate(new Date().toISOString().split('T')[0])}
@@ -1027,7 +1027,7 @@ function StatementContent() {
             </div>
           </div>
 
-          {/* Off-screen dedicated full-width container for WhatsApp image export (no scrollbars, full desktop layout) */}
+          {/* Off-screen dedicated container for WhatsApp image export (optimized for mobile readability) */}
           <div
             aria-hidden="true"
             className="print:hidden"
@@ -1035,7 +1035,7 @@ function StatementContent() {
               position: 'fixed',
               top: 0,
               left: '-99999px',
-              width: '1120px',
+              width: '840px',
               pointerEvents: 'none',
               zIndex: -9999,
             }}
@@ -1043,11 +1043,11 @@ function StatementContent() {
             <div
               ref={exportCardRef}
               style={{
-                width: '1120px',
-                minWidth: '1120px',
-                maxWidth: '1120px',
+                width: '840px',
+                minWidth: '840px',
+                maxWidth: '840px',
                 backgroundColor: '#ffffff',
-                padding: '24px 28px',
+                padding: '16px',
               }}
               className="bg-white"
             >
@@ -1057,72 +1057,72 @@ function StatementContent() {
                   backgroundColor: '#ffffff',
                   color: '#0f172a',
                 }}
-                className="bg-white text-slate-900 rounded-2xl border border-slate-200 overflow-hidden shadow-xs"
+                className="bg-white text-slate-900 rounded-xl border border-slate-200 overflow-hidden shadow-xs"
               >
                 {/* Header */}
-                <div className="p-6 border-b border-slate-200 bg-slate-50/70 flex flex-row items-center justify-between gap-4">
-                  <div className="space-y-1">
+                <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50/90 flex flex-row items-center justify-between gap-4">
+                  <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
                         Statement of Account
                       </span>
                     </div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                    <h2 className="text-xl font-bold tracking-tight text-slate-900">
                       {selectedAgent.name}
                     </h2>
                     {selectedAgent.phone && (
-                      <p className="text-xs text-slate-500 font-medium">
+                      <p className="text-xs text-slate-600 font-medium">
                         Phone: {selectedAgent.phone}
                       </p>
                     )}
                   </div>
 
                   <div className="text-right">
-                    <div className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
                       Statement Period
                     </div>
-                    <div className="text-sm font-bold text-slate-800 font-mono mt-0.5">
+                    <div className="text-xs font-bold text-slate-800 font-mono mt-0.5">
                       {fromDate ? formatDate(fromDate) : 'Start'} &mdash; {toDate ? formatDate(toDate) : 'Current Date'}
                     </div>
                   </div>
                 </div>
 
                 {/* Statement Table - NO OVERFLOW CONTAINER to prevent any scrollbars in captured image */}
-                <table className="w-full text-left text-sm border-collapse">
-                  <thead className="bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
                     <tr>
-                      <th className="pl-6 pr-4 py-3.5 w-28">Date</th>
-                      <th className="px-4 py-3.5 w-28">Type</th>
-                      <th className="px-4 py-3.5">Particulars / Details</th>
-                      <th className="px-4 py-3.5 text-right w-20">Qty</th>
-                      <th className="px-4 py-3.5 text-right w-24">Rate</th>
-                      <th className="px-4 py-3.5 text-right w-28">Debit</th>
-                      <th className="px-4 py-3.5 text-right w-28">Credit</th>
-                      <th className="pl-4 pr-6 py-3.5 text-right w-36">Running Balance</th>
+                      <th className="pl-4 pr-2 py-2 w-24">Date</th>
+                      <th className="px-2 py-2 w-20">Type</th>
+                      <th className="px-3 py-2">Particulars / Details</th>
+                      <th className="px-2 py-2 text-right w-14">Qty</th>
+                      <th className="px-2 py-2 text-right w-20">Rate</th>
+                      <th className="px-2 py-2 text-right w-24">Debit</th>
+                      <th className="px-2 py-2 text-right w-24">Credit</th>
+                      <th className="pl-2 pr-4 py-2 text-right w-32">Running Balance</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
+                  <tbody className="divide-y divide-slate-150 bg-white">
                     {/* First Row: Opening Balance */}
-                    <tr className="bg-slate-50/50 font-medium">
-                      <td className="pl-6 pr-4 py-3.5 font-mono text-xs text-slate-500">
+                    <tr className="bg-slate-50/60 font-medium">
+                      <td className="pl-4 pr-2 py-2 font-mono text-[11px] text-slate-600">
                         {fromDate ? formatDate(fromDate) : '—'}
                       </td>
-                      <td className="px-4 py-3.5">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                      <td className="px-2 py-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                           Opening
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-slate-700 font-medium italic">
+                      <td className="px-3 py-2 text-slate-800 font-medium italic text-xs">
                         Brought Forward Opening Balance
                       </td>
-                      <td className="px-4 py-3.5 text-right font-mono text-slate-400">—</td>
-                      <td className="px-4 py-3.5 text-right font-mono text-slate-400">—</td>
-                      <td className="px-4 py-3.5 text-right font-mono text-slate-400">—</td>
-                      <td className="px-4 py-3.5 text-right font-mono text-slate-400">—</td>
-                      <td className="pl-4 pr-6 py-3.5 text-right font-mono font-bold text-slate-900">
+                      <td className="px-2 py-2 text-right font-mono text-slate-400 text-xs">—</td>
+                      <td className="px-2 py-2 text-right font-mono text-slate-400 text-xs">—</td>
+                      <td className="px-2 py-2 text-right font-mono text-slate-400 text-xs">—</td>
+                      <td className="px-2 py-2 text-right font-mono text-slate-400 text-xs">—</td>
+                      <td className="pl-2 pr-4 py-2 text-right font-mono font-bold text-slate-900 text-xs">
                         {formatNumber(statement.openingBalance.amount)}
                         {statement.openingBalance.type && (
-                          <span className="ml-1 text-xs text-slate-500 font-semibold">
+                          <span className="ml-1 text-[11px] text-slate-600 font-semibold">
                             {statement.openingBalance.type}
                           </span>
                         )}
@@ -1134,50 +1134,52 @@ function StatementContent() {
                       let badgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
                       let dotColor = 'bg-slate-400';
                       if (row.type === 'Sale') {
-                        badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
-                        dotColor = 'bg-blue-500';
+                        badgeClass = 'bg-blue-50 text-blue-800 border-blue-200';
+                        dotColor = 'bg-blue-600';
                       } else if (row.type === 'Receipt') {
-                        badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                        dotColor = 'bg-emerald-500';
+                        badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                        dotColor = 'bg-emerald-600';
                       } else if (row.type === 'Cancel') {
-                        badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
-                        dotColor = 'bg-amber-500';
+                        badgeClass = 'bg-amber-50 text-amber-800 border-amber-200';
+                        dotColor = 'bg-amber-600';
                       }
 
+                      const rowBg = index % 2 === 0 ? 'bg-white' : 'bg-slate-50/70';
+
                       return (
-                        <tr key={index} className="bg-white">
-                          <td className="pl-6 pr-4 py-3.5 font-mono text-xs text-slate-600">
+                        <tr key={index} className={rowBg}>
+                          <td className="pl-4 pr-2 py-2 font-mono text-[11px] text-slate-700">
                             {formatDate(row.date)}
                           </td>
-                          <td className="px-4 py-3.5">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${badgeClass}`}>
+                          <td className="px-2 py-2">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${badgeClass}`}>
                               <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dotColor}`} />
                               {row.type || 'Entry'}
                             </span>
                           </td>
-                          <td className="px-4 py-3.5 text-slate-900 font-medium">
+                          <td className="px-3 py-2 text-slate-900 font-semibold text-xs leading-snug">
                             {row.particulars}
                           </td>
-                          <td className="px-4 py-3.5 text-right font-mono text-slate-900">
+                          <td className="px-2 py-2 text-right font-mono text-slate-900 text-xs">
                             {row.qty !== undefined && row.qty > 0 ? row.qty : '—'}
                           </td>
-                          <td className="px-4 py-3.5 text-right font-mono text-slate-700">
+                          <td className="px-2 py-2 text-right font-mono text-slate-700 text-xs">
                             {row.rate !== undefined && row.rate > 0 ? formatNumber(row.rate) : '—'}
                           </td>
-                          <td className="px-4 py-3.5 text-right font-mono font-semibold text-amber-600">
+                          <td className="px-2 py-2 text-right font-mono font-bold text-amber-700 text-xs">
                             {row.debit > 0 ? formatNumber(row.debit) : '—'}
                           </td>
-                          <td className="px-4 py-3.5 text-right font-mono font-semibold text-emerald-600">
+                          <td className="px-2 py-2 text-right font-mono font-bold text-emerald-700 text-xs">
                             {row.credit > 0 ? formatNumber(row.credit) : '—'}
                           </td>
-                          <td className="pl-4 pr-6 py-3.5 text-right font-mono font-bold text-slate-900">
+                          <td className="pl-2 pr-4 py-2 text-right font-mono font-bold text-slate-900 text-xs">
                             {formatNumber(row.balance)}
                             {row.balanceType && (
                               <span
-                                className={`ml-1 text-xs font-bold ${
+                                className={`ml-1 text-[11px] font-bold ${
                                   row.balanceType === 'Dr'
-                                    ? 'text-amber-600'
-                                    : 'text-emerald-600'
+                                    ? 'text-amber-700'
+                                    : 'text-emerald-700'
                                 }`}
                               >
                                 {row.balanceType}
@@ -1190,7 +1192,7 @@ function StatementContent() {
 
                     {statement.rows.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="px-6 py-12 text-center text-slate-400 italic bg-white">
+                        <td colSpan={8} className="px-6 py-8 text-center text-slate-400 italic bg-white text-xs">
                           No transactions found for the selected period.
                         </td>
                       </tr>
@@ -1200,21 +1202,21 @@ function StatementContent() {
                   {/* Totals Row */}
                   <tfoot className="bg-slate-100/90 font-bold border-t-2 border-slate-300 text-slate-900">
                     <tr>
-                      <td className="pl-6 pr-4 py-4 font-mono text-xs">TOTALS</td>
-                      <td className="px-4 py-4 text-slate-400">—</td>
-                      <td className="px-4 py-4">Total Period Activity & Net Closing</td>
-                      <td className="px-4 py-4 text-right font-mono text-slate-400">—</td>
-                      <td className="px-4 py-4 text-right font-mono text-slate-400">—</td>
-                      <td className="px-4 py-4 text-right font-mono text-base text-amber-600">
+                      <td className="pl-4 pr-2 py-2.5 font-mono text-[11px]">TOTALS</td>
+                      <td className="px-2 py-2.5 text-slate-400">—</td>
+                      <td className="px-3 py-2.5 text-xs text-slate-800">Total Period Activity & Net Closing</td>
+                      <td className="px-2 py-2.5 text-right font-mono text-slate-400">—</td>
+                      <td className="px-2 py-2.5 text-right font-mono text-slate-400">—</td>
+                      <td className="px-2 py-2.5 text-right font-mono text-xs font-bold text-amber-700">
                         {formatNumber(statement.totalDebit)}
                       </td>
-                      <td className="px-4 py-4 text-right font-mono text-base text-emerald-600">
+                      <td className="px-2 py-2.5 text-right font-mono text-xs font-bold text-emerald-700">
                         {formatNumber(statement.totalCredit)}
                       </td>
-                      <td className="pl-4 pr-6 py-4 text-right font-mono text-base text-indigo-600">
+                      <td className="pl-2 pr-4 py-2.5 text-right font-mono text-xs font-bold text-indigo-700">
                         {formatNumber(statement.closingBalance.amount)}
                         {statement.closingBalance.type && (
-                          <span className="ml-1 text-xs font-bold text-indigo-600">
+                          <span className="ml-1 text-[11px] font-bold text-indigo-700">
                             {statement.closingBalance.type}
                           </span>
                         )}
@@ -1224,9 +1226,9 @@ function StatementContent() {
                 </table>
 
                 {/* Footer Note */}
-                <div className="px-6 py-3.5 bg-slate-50/80 border-t border-slate-200 flex flex-row items-center justify-between text-[11px] text-slate-500">
+                <div className="px-5 py-2.5 bg-slate-50/80 border-t border-slate-200 flex flex-row items-center justify-between text-[11px] text-slate-500">
                   <span className="font-medium tracking-wide">
-                    Powered by J ledger software : <span className="font-semibold text-slate-700">8086094070</span>
+                    Powered by J ledger software : <span className="font-semibold text-slate-700">+91 8086094070</span>
                   </span>
                   <span className="text-[10px] text-slate-400 font-mono">
                     {formatDate(new Date().toISOString().split('T')[0])}

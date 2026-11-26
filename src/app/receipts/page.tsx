@@ -15,11 +15,18 @@ import {
   Search,
   Wallet,
   Users,
+  Calendar,
 } from 'lucide-react';
 import { Agent, Transaction, Entry } from '@/types';
 import { transactionRepo, agentRepo, entryRepo } from '@/lib/repo';
 import { formatNumber, formatDate } from '@/lib/format';
 import { calculateAgentBalance, round2 } from '@/lib/accounting';
+import {
+  DateFilterPreset,
+  DATE_FILTER_PRESETS,
+  getDateRangeForPreset,
+  isDateInRange,
+} from '@/lib/date-filters';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -42,15 +49,42 @@ function ReceiptsContent() {
   // Search and Mode Filter
   const [searchQuery, setSearchQuery] = React.useState('');
   const [modeFilter, setModeFilter] = React.useState<'all' | 'bank' | 'cash'>('all');
+  const [datePreset, setDatePreset] = React.useState<DateFilterPreset>('today');
+  const [fromDate, setFromDate] = React.useState('');
+  const [toDate, setToDate] = React.useState('');
 
   // If drilled from Statement, ensure receipt is visible
   React.useEffect(() => {
     if (highlightParam) {
       setSearchQuery('');
       setModeFilter('all');
+      setDatePreset('all');
+      setFromDate('');
+      setToDate('');
       setHighlightedId(highlightParam);
+    } else {
+      const range = getDateRangeForPreset('today');
+      setFromDate(range.fromDate);
+      setToDate(range.toDate);
     }
   }, [highlightParam]);
+
+  const applyDatePreset = (preset: Exclude<DateFilterPreset, 'custom'>) => {
+    triggerHaptic('selection');
+    setDatePreset(preset);
+    const range = getDateRangeForPreset(preset);
+    setFromDate(range.fromDate);
+    setToDate(range.toDate);
+  };
+
+  const hasDateFilter = Boolean(datePreset !== 'all' || fromDate || toDate);
+  const hasActiveFilters = Boolean(searchQuery || modeFilter !== 'all' || hasDateFilter);
+
+  // Receipts filtered by active date range (drives KPI cards and table)
+  const dateFilteredReceipts = React.useMemo(() => {
+    if (!fromDate && !toDate) return receipts;
+    return receipts.filter((rec) => isDateInRange(rec.date, fromDate, toDate));
+  }, [receipts, fromDate, toDate]);
 
   // Form Modal State
   const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -128,28 +162,28 @@ function ReceiptsContent() {
 
   // KPI Calculations
   const stats = React.useMemo(() => {
-    const totalCollected = receipts.reduce((sum, r) => sum + (r.receipt_details?.amount || 0), 0);
-    const bankTotal = receipts
+    const totalCollected = dateFilteredReceipts.reduce((sum, r) => sum + (r.receipt_details?.amount || 0), 0);
+    const bankTotal = dateFilteredReceipts
       .filter((r) => r.receipt_details?.received_in === 'bank')
       .reduce((sum, r) => sum + (r.receipt_details?.amount || 0), 0);
-    const cashTotal = receipts
+    const cashTotal = dateFilteredReceipts
       .filter((r) => r.receipt_details?.received_in === 'cash')
       .reduce((sum, r) => sum + (r.receipt_details?.amount || 0), 0);
 
-    const uniqueAgents = new Set(receipts.map((r) => r.receipt_details?.agent_id)).size;
+    const uniqueAgents = new Set(dateFilteredReceipts.map((r) => r.receipt_details?.agent_id)).size;
 
     return {
       totalCollected,
       bankTotal,
       cashTotal,
       uniqueAgents,
-      totalCount: receipts.length,
+      totalCount: dateFilteredReceipts.length,
     };
-  }, [receipts]);
+  }, [dateFilteredReceipts]);
 
   // Filtered receipts
   const filteredReceipts = React.useMemo(() => {
-    return receipts.filter((rec) => {
+    return dateFilteredReceipts.filter((rec) => {
       const details = rec.receipt_details;
       if (!details) return false;
 
@@ -164,7 +198,7 @@ function ReceiptsContent() {
       if (modeFilter === 'all') return true;
       return details.received_in === modeFilter;
     });
-  }, [receipts, agents, searchQuery, modeFilter]);
+  }, [dateFilteredReceipts, agents, searchQuery, modeFilter]);
 
   const openCreateModal = () => {
     setEditingReceipt(null);
@@ -290,6 +324,73 @@ function ReceiptsContent() {
         </div>
       )}
 
+      {/* Date Range Filter Toolbar */}
+      <div className="bg-white dark:bg-[#0e1422] p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] pb-0.5 lg:pb-0">
+          <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-slate-400 mr-1 shrink-0 whitespace-nowrap">
+            <Calendar className="h-3.5 w-3.5" />
+            Period:
+          </span>
+          {DATE_FILTER_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => applyDatePreset(preset.id)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                datePreset === preset.id
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-semibold border border-blue-200/80 dark:border-blue-800/60'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 flex-1 sm:flex-initial">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 shrink-0">
+              From
+            </span>
+            <input
+              type="date"
+              aria-label="From date"
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setDatePreset('custom');
+              }}
+              className="w-full sm:w-auto px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 flex-1 sm:flex-initial">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 shrink-0">
+              To
+            </span>
+            <input
+              type="date"
+              aria-label="To date"
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setDatePreset('custom');
+              }}
+              className="w-full sm:w-auto px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+          {hasDateFilter && (
+            <button
+              type="button"
+              onClick={() => applyDatePreset('all')}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+              title="Reset date filter to All Time"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* KPI Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -377,19 +478,20 @@ function ReceiptsContent() {
         <div className="text-center py-16 bg-white dark:bg-[#0e1422] rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-8 shadow-2xs">
           <Receipt className="h-12 w-12 text-slate-400 mx-auto mb-3 opacity-60" />
           <h3 className="text-base font-semibold text-slate-900 dark:text-white">
-            {searchQuery || modeFilter !== 'all' ? 'No matching receipts found' : 'No Receipts Recorded Yet'}
+            {hasActiveFilters ? 'No matching receipts found' : 'No Receipts Recorded Yet'}
           </h3>
           <p className="text-sm text-slate-500 mt-1 mb-5 max-w-sm mx-auto">
-            {searchQuery || modeFilter !== 'all'
-              ? 'Try adjusting your search terms or filters.'
+            {hasActiveFilters
+              ? 'Try adjusting your search terms, date filter, or mode filter.'
               : 'Record payments received from agents via Cash or Bank.'}
           </p>
-          {searchQuery || modeFilter !== 'all' ? (
+          {hasActiveFilters ? (
             <Button
               variant="outline"
               onClick={() => {
                 setSearchQuery('');
                 setModeFilter('all');
+                applyDatePreset('all');
               }}
             >
               Clear Filters

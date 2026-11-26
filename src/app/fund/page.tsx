@@ -12,6 +12,7 @@ import {
   ArrowDownRight,
   Search,
   IndianRupee,
+  Calendar,
 } from 'lucide-react';
 import { FundEntry, Transaction } from '@/types';
 import { fundRepo, transactionRepo } from '@/lib/repo';
@@ -23,6 +24,13 @@ import {
   computeFundExpense,
   computeFundAmount,
 } from '@/lib/accounting';
+import {
+  DateFilterPreset,
+  DATE_FILTER_PRESETS,
+  getDateRangeForPreset,
+  isDateInRange,
+} from '@/lib/date-filters';
+import { triggerHaptic } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -40,6 +48,20 @@ export default function FundPage() {
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [datePreset, setDatePreset] = React.useState<DateFilterPreset>('all');
+  const [fromDate, setFromDate] = React.useState('');
+  const [toDate, setToDate] = React.useState('');
+
+  const applyDatePreset = (preset: Exclude<DateFilterPreset, 'custom'>) => {
+    triggerHaptic('selection');
+    setDatePreset(preset);
+    const range = getDateRangeForPreset(preset);
+    setFromDate(range.fromDate);
+    setToDate(range.toDate);
+  };
+
+  const hasDateFilter = Boolean(datePreset !== 'all' || fromDate || toDate);
+  const hasActiveFilters = Boolean(searchQuery || hasDateFilter);
 
   // Fund Modal State
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -94,22 +116,38 @@ export default function FundPage() {
     }
   };
 
-  // Derived stats (both FC and cumulative INR)
-  const stats: FundStats = React.useMemo(() => {
-    return calculateFundStats(funds, sales, cancels);
-  }, [funds, sales, cancels]);
+  // Date-filtered records
+  const dateFilteredFunds = React.useMemo(() => {
+    if (!fromDate && !toDate) return funds;
+    return funds.filter((f) => isDateInRange(f.date, fromDate, toDate));
+  }, [funds, fromDate, toDate]);
 
-  // Filtered funds
+  const dateFilteredSales = React.useMemo(() => {
+    if (!fromDate && !toDate) return sales;
+    return sales.filter((s) => isDateInRange(s.date, fromDate, toDate));
+  }, [sales, fromDate, toDate]);
+
+  const dateFilteredCancels = React.useMemo(() => {
+    if (!fromDate && !toDate) return cancels;
+    return cancels.filter((c) => isDateInRange(c.date, fromDate, toDate));
+  }, [cancels, fromDate, toDate]);
+
+  // Derived stats (both FC and cumulative INR) driven by active date filter
+  const stats: FundStats = React.useMemo(() => {
+    return calculateFundStats(dateFilteredFunds, dateFilteredSales, dateFilteredCancels);
+  }, [dateFilteredFunds, dateFilteredSales, dateFilteredCancels]);
+
+  // Filtered funds (date range + search query)
   const filteredFunds = React.useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return funds;
-    return funds.filter((f) => {
+    if (!q) return dateFilteredFunds;
+    return dateFilteredFunds.filter((f) => {
       const matchesNote = (f.note || '').toLowerCase().includes(q);
       const matchesDate = f.date.includes(q);
       const matchesRate = String(f.rate).includes(q);
       return matchesNote || matchesDate || matchesRate;
     });
-  }, [funds, searchQuery]);
+  }, [dateFilteredFunds, searchQuery]);
 
   // Modal open helpers
   const openCreateModal = () => {
@@ -261,6 +299,73 @@ export default function FundPage() {
         </div>
       </div>
 
+      {/* Date Range Filter Toolbar */}
+      <div className="bg-white dark:bg-[#0e1422] p-3 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] pb-0.5 lg:pb-0">
+          <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-slate-400 mr-1 shrink-0 whitespace-nowrap">
+            <Calendar className="h-3.5 w-3.5" />
+            Period:
+          </span>
+          {DATE_FILTER_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => applyDatePreset(preset.id)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                datePreset === preset.id
+                  ? 'bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-400 font-semibold border border-violet-200/80 dark:border-violet-800/60'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/60 border border-transparent'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 flex-1 sm:flex-initial">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 shrink-0">
+              From
+            </span>
+            <input
+              type="date"
+              aria-label="From date"
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setDatePreset('custom');
+              }}
+              className="w-full sm:w-auto px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 flex-1 sm:flex-initial">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 shrink-0">
+              To
+            </span>
+            <input
+              type="date"
+              aria-label="To date"
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setDatePreset('custom');
+              }}
+              className="w-full sm:w-auto px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-violet-500/20"
+            />
+          </div>
+          {hasDateFilter && (
+            <button
+              type="button"
+              onClick={() => applyDatePreset('all')}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+              title="Reset date filter to All Time"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* KPI Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -342,16 +447,22 @@ export default function FundPage() {
         <div className="text-center py-16 bg-white dark:bg-[#0e1422] rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-8 shadow-2xs">
           <Wallet className="h-12 w-12 text-slate-400 mx-auto mb-3 opacity-60" />
           <h3 className="text-base font-semibold text-slate-900 dark:text-white">
-            {searchQuery ? 'No matching fund entries' : 'No Fund Added Yet'}
+            {hasActiveFilters ? 'No matching fund entries' : 'No Fund Added Yet'}
           </h3>
           <p className="text-sm text-slate-500 mt-1 mb-5 max-w-sm mx-auto">
-            {searchQuery
-              ? 'Try adjusting your search query.'
+            {hasActiveFilters
+              ? 'Try adjusting your search query or date filter.'
               : 'Add your first fund capital entry with the daily acquisition rate to start tracking fund balance and profits.'}
           </p>
-          {searchQuery ? (
-            <Button variant="outline" onClick={() => setSearchQuery('')}>
-              Clear Search
+          {hasActiveFilters ? (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchQuery('');
+                applyDatePreset('all');
+              }}
+            >
+              Clear Filters
             </Button>
           ) : (
             <Button onClick={openCreateModal}>
