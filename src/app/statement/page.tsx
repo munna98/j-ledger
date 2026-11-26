@@ -17,10 +17,6 @@ import {
   Share2,
   Check,
   ArrowLeft,
-  Eye,
-  ExternalLink,
-  Search,
-  Compass,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toBlob } from 'html-to-image';
@@ -28,7 +24,6 @@ import { Agent, Entry, Transaction, StatementRow } from '@/types';
 import { agentRepo, entryRepo, transactionRepo } from '@/lib/repo';
 import { formatNumber, formatDate } from '@/lib/format';
 import { calculateAgentStatement } from '@/lib/accounting';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
@@ -124,7 +119,6 @@ function StatementContent() {
   const statementCardRef = React.useRef<HTMLDivElement>(null);
   const exportCardRef = React.useRef<HTMLDivElement>(null);
   const [mobileView, setMobileView] = React.useState<'feed' | 'table'>('feed');
-  const [selectedVoucherRow, setSelectedVoucherRow] = React.useState<StatementRow | null>(null);
 
   // Set default dates: first day of current month to today
   React.useEffect(() => {
@@ -731,32 +725,31 @@ function StatementContent() {
             {/* Mobile Native Cards Feed */}
             <div className={cn('md:hidden divide-y divide-slate-100 dark:divide-slate-800/80 print:hidden', mobileView === 'table' && 'hidden')}>
               {/* Opening Balance Card */}
-              <div className="p-4 bg-slate-50/70 dark:bg-slate-900/40 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Opening Balance</div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">
-                      {fromDate ? formatDate(fromDate) : 'Start of Period'}
-                    </div>
+              <div className="p-4 bg-slate-50/70 dark:bg-slate-900/40 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Opening Balance</span>
+                    {selectedAgent && (
+                      <Link
+                        href={`/agents?highlight=${selectedAgent.id}`}
+                        title="Drill to Agent Setup & Opening Balance"
+                        className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 inline-flex items-center hover:underline"
+                      >
+                        <span>Drill</span>
+                        <ArrowUpRight className="h-2.5 w-2.5" />
+                      </Link>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
-                      {formatNumber(statement.openingBalance.amount)}{' '}
-                      <span className="text-xs text-slate-500 font-semibold">{statement.openingBalance.type}</span>
-                    </div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400">
+                    {fromDate ? formatDate(fromDate) : 'Start of Period'}
                   </div>
                 </div>
-                {selectedAgent && (
-                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex justify-end">
-                    <Link
-                      href={`/agents?highlight=${selectedAgent.id}`}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                    >
-                      <span>Drill to Agent Setup</span>
-                      <ArrowUpRight className="h-3 w-3" />
-                    </Link>
+                <div className="text-right">
+                  <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                    {formatNumber(statement.openingBalance.amount)}{' '}
+                    <span className="text-xs text-slate-500 font-semibold">{statement.openingBalance.type}</span>
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Transaction Stream */}
@@ -777,9 +770,16 @@ function StatementContent() {
                   <div key={index} className="p-4 space-y-2.5 bg-white dark:bg-[#0e1422]">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Badge variant={typeBadgeVariant} dot className="text-[10px]">
-                          {row.type || 'Entry'}
-                        </Badge>
+                        <Link
+                          href={drillTarget.url}
+                          title={drillTarget.actionLabel}
+                          className="inline-flex items-center group active:scale-95 transition-transform"
+                        >
+                          <Badge variant={typeBadgeVariant} dot className="text-[10px] font-semibold group-hover:ring-1 transition-all">
+                            {row.type || 'Entry'}
+                            <ArrowUpRight className="h-2.5 w-2.5 ml-1 opacity-70 group-hover:opacity-100" />
+                          </Badge>
+                        </Link>
                         <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
                           {formatDate(row.date)}
                         </span>
@@ -820,28 +820,6 @@ function StatementContent() {
                           {row.balanceType}
                         </span>
                       </div>
-                    </div>
-
-                    {/* Mobile Drill Bar */}
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic('light');
-                          setSelectedVoucherRow(row);
-                        }}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
-                      >
-                        <Eye className="h-3.5 w-3.5 text-indigo-500" />
-                        <span>Voucher Details</span>
-                      </button>
-                      <Link
-                        href={drillTarget.url}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60 active:scale-95 transition-transform"
-                      >
-                        <span>Drill to {drillTarget.sourceModule}</span>
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </Link>
                     </div>
                   </div>
                 );
@@ -888,14 +866,13 @@ function StatementContent() {
                 <thead className="bg-slate-50/80 dark:bg-slate-900/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200/80 dark:border-slate-800/80">
                   <tr>
                     <th className="px-4 py-3.5 w-28">Date</th>
-                    <th className="px-4 py-3.5 w-28">Type</th>
+                    <th className="px-4 py-3.5 w-32">Type</th>
                     <th className="px-4 py-3.5">Particulars / Details</th>
                     <th className="px-4 py-3.5 text-right w-20">Qty</th>
                     <th className="px-4 py-3.5 text-right w-24">Rate</th>
                     <th className="px-4 py-3.5 text-right w-28">Debit</th>
                     <th className="px-4 py-3.5 text-right w-28">Credit</th>
                     <th className="px-4 py-3.5 text-right w-36">Running Balance</th>
-                    <th className="px-3 py-3.5 text-center w-28 print:hidden">Drill</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
@@ -905,7 +882,20 @@ function StatementContent() {
                       {fromDate ? formatDate(fromDate) : '—'}
                     </td>
                     <td className="px-4 py-3.5">
-                      <Badge variant="neutral" className="text-[10px]">Opening</Badge>
+                      {selectedAgent ? (
+                        <Link
+                          href={`/agents?highlight=${selectedAgent.id}`}
+                          title="Drill to Agent Setup & Opening Balance"
+                          className="inline-flex items-center group cursor-pointer"
+                        >
+                          <Badge variant="neutral" className="text-[10px] font-semibold group-hover:ring-1 group-hover:ring-slate-400 transition-all">
+                            Opening
+                            <ArrowUpRight className="h-2.5 w-2.5 ml-0.5 opacity-60 group-hover:opacity-100" />
+                          </Badge>
+                        </Link>
+                      ) : (
+                        <Badge variant="neutral" className="text-[10px]">Opening</Badge>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300 font-medium italic">
                       Brought Forward Opening Balance
@@ -920,18 +910,6 @@ function StatementContent() {
                         <span className="ml-1 text-xs text-slate-500 font-semibold">
                           {statement.openingBalance.type}
                         </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3.5 text-center print:hidden">
-                      {selectedAgent && (
-                        <Link
-                          href={`/agents?highlight=${selectedAgent.id}`}
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 px-2 py-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                          title="Drill to Agent Profile & Opening Balance Setup"
-                        >
-                          <span>Agent</span>
-                          <ArrowUpRight className="h-3 w-3" />
-                        </Link>
                       )}
                     </td>
                   </tr>
@@ -949,21 +927,25 @@ function StatementContent() {
                     const drillTarget = getDrillTarget(row, selectedAgent, transactions);
 
                     return (
-                      <tr
-                        key={index}
-                        onClick={() => {
-                          triggerHaptic('light');
-                          setSelectedVoucherRow(row);
-                        }}
-                        className="hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 transition-colors cursor-pointer group"
-                      >
+                      <tr key={index} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="px-4 py-3.5 font-mono text-xs text-slate-600 dark:text-slate-400">
                           {formatDate(row.date)}
                         </td>
                         <td className="px-4 py-3.5">
-                          <Badge variant={typeBadgeVariant} dot className="text-[10px] font-semibold">
-                            {row.type || 'Entry'}
-                          </Badge>
+                          <Link
+                            href={drillTarget.url}
+                            title={drillTarget.actionLabel}
+                            className="inline-flex items-center group cursor-pointer"
+                          >
+                            <Badge
+                              variant={typeBadgeVariant}
+                              dot
+                              className="text-[10px] font-semibold group-hover:ring-1 group-hover:ring-offset-1 transition-all"
+                            >
+                              {row.type || 'Entry'}
+                              <ArrowUpRight className="h-2.5 w-2.5 ml-1 opacity-70 group-hover:opacity-100" />
+                            </Badge>
+                          </Link>
                         </td>
                         <td className="px-4 py-3.5 text-slate-900 dark:text-slate-100 font-medium">
                           {row.particulars}
@@ -994,41 +976,13 @@ function StatementContent() {
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-3.5 text-center print:hidden">
-                          <div className="flex items-center justify-center gap-1">
-                            <Link
-                              href={drillTarget.url}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                triggerHaptic('selection');
-                              }}
-                              title={drillTarget.actionLabel}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 border border-indigo-200/60 dark:border-indigo-800/60 transition-all active:scale-95"
-                            >
-                              <span>Drill</span>
-                              <ArrowUpRight className="h-3 w-3" />
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                triggerHaptic('light');
-                                setSelectedVoucherRow(row);
-                              }}
-                              title="View Voucher Details & Balanced Ledger Postings"
-                              className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </td>
                       </tr>
                     );
                   })}
 
                   {statement.rows.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="px-4 py-12 text-center text-slate-400 italic">
+                      <td colSpan={8} className="px-4 py-12 text-center text-slate-400 italic">
                         No transactions found for the selected period.
                       </td>
                     </tr>
@@ -1057,7 +1011,6 @@ function StatementContent() {
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-4 text-center text-slate-400 print:hidden">—</td>
                   </tr>
                 </tfoot>
               </table>
@@ -1073,199 +1026,6 @@ function StatementContent() {
               </span>
             </div>
           </div>
-
-          {/* Transaction Voucher Drill-down Modal */}
-          <Dialog
-            open={Boolean(selectedVoucherRow)}
-            onOpenChange={(open) => {
-              if (!open) setSelectedVoucherRow(null);
-            }}
-          >
-            <DialogContent
-              maxWidth="max-w-2xl"
-              title="Transaction Voucher Drill-down"
-              description={`Detailed voucher audit trail and double-entry postings for ${selectedAgent?.name || 'Agent'}`}
-            >
-              {selectedVoucherRow && (() => {
-                const drillTarget = getDrillTarget(selectedVoucherRow, selectedAgent, transactions);
-                const activeTx = selectedVoucherRow.transaction_id
-                  ? transactions.find((t) => t.id === selectedVoucherRow.transaction_id)
-                  : null;
-                const voucherEntries = selectedVoucherRow.transaction_id
-                  ? entries.filter((e) => e.transaction_id === selectedVoucherRow.transaction_id)
-                  : [];
-
-                return (
-                  <div className="space-y-5">
-                    {/* Top Voucher Header Summary */}
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={drillTarget.badgeVariant} dot className="font-semibold text-xs">
-                            Created in {drillTarget.sourceModule} Module
-                          </Badge>
-                          <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
-                            {formatDate(selectedVoucherRow.date)}
-                          </span>
-                        </div>
-                        {selectedVoucherRow.transaction_id && (
-                          <span className="font-mono text-[11px] text-slate-400 dark:text-slate-500">
-                            ID: {selectedVoucherRow.transaction_id}
-                          </span>
-                        )}
-                      </div>
-
-                      <div>
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                          {selectedVoucherRow.particulars}
-                        </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          Agent Account: <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedAgent?.name}</span>
-                        </p>
-                      </div>
-
-                      {/* Financial Metrics */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-                        <div className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60">
-                          <span className="text-[10px] uppercase font-bold text-slate-400">Type</span>
-                          <div className="font-semibold text-xs text-slate-800 dark:text-slate-200 mt-0.5">
-                            {selectedVoucherRow.type || 'Entry'}
-                          </div>
-                        </div>
-                        <div className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60">
-                          <span className="text-[10px] uppercase font-bold text-slate-400">Debit (Dr)</span>
-                          <div className="font-mono font-bold text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                            {selectedVoucherRow.debit > 0 ? formatNumber(selectedVoucherRow.debit) : '—'}
-                          </div>
-                        </div>
-                        <div className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60">
-                          <span className="text-[10px] uppercase font-bold text-slate-400">Credit (Cr)</span>
-                          <div className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
-                            {selectedVoucherRow.credit > 0 ? formatNumber(selectedVoucherRow.credit) : '—'}
-                          </div>
-                        </div>
-                        <div className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60">
-                          <span className="text-[10px] uppercase font-bold text-slate-400">Running Bal</span>
-                          <div className="font-mono font-bold text-xs text-slate-900 dark:text-white mt-0.5">
-                            {formatNumber(selectedVoucherRow.balance)}{' '}
-                            <span className="text-[10px] text-slate-500">{selectedVoucherRow.balanceType}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Specific Details: Sale or Receipt or Cancel */}
-                    {activeTx?.sale_details && (
-                      <div className="p-3.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/60 space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
-                        <div className="font-semibold text-blue-900 dark:text-blue-300 flex items-center justify-between">
-                          <span>Sale Specifics</span>
-                          <span>Party: {activeTx.sale_details.party || 'Direct'}</span>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 font-mono text-[11px]">
-                          <div>Quantity: <span className="font-bold">{activeTx.sale_details.qty} units</span></div>
-                          <div>Rate: <span className="font-bold">{formatNumber(activeTx.sale_details.rate)}</span></div>
-                          <div>Total Value: <span className="font-bold text-blue-600 dark:text-blue-400">{formatNumber(activeTx.sale_details.amount)}</span></div>
-                        </div>
-                      </div>
-                    )}
-
-                    {activeTx?.receipt_details && (
-                      <div className="p-3.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/60 space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
-                        <div className="font-semibold text-emerald-900 dark:text-emerald-300 flex items-center justify-between">
-                          <span>Receipt Collection Info</span>
-                          <span>Payment Account: {activeTx.receipt_details.received_in === 'cash' ? 'Cash Account' : 'Bank Account'}</span>
-                        </div>
-                        {activeTx.receipt_details.note && (
-                          <div className="text-[11px]">Note / Memo: <span className="font-medium">{activeTx.receipt_details.note}</span></div>
-                        )}
-                      </div>
-                    )}
-
-                    {activeTx?.cancel_details && (
-                      <div className="p-3.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/60 space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
-                        <div className="font-semibold text-amber-900 dark:text-amber-300 flex items-center justify-between">
-                          <span>Cancellation Specifics</span>
-                          <span>Returned Units: {activeTx.cancel_details.qty}</span>
-                        </div>
-                        {activeTx.cancel_details.reason && (
-                          <div className="text-[11px]">Reason: <span className="font-medium">{activeTx.cancel_details.reason}</span></div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Double Entry Ledger Journal Breakdown */}
-                    {voucherEntries.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          <span>Double-Entry Ledger Postings</span>
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Balanced Journal Voucher</span>
-                        </div>
-                        <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden">
-                          <table className="w-full text-left text-xs">
-                            <thead className="bg-slate-100/70 dark:bg-slate-800/70 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                              <tr>
-                                <th className="px-3.5 py-2">Ledger Account</th>
-                                <th className="px-3.5 py-2 text-right">Debit (Dr)</th>
-                                <th className="px-3.5 py-2 text-right">Credit (Cr)</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                              {voucherEntries.map((e) => {
-                                let accountLabel = e.account_id;
-                                if (e.account_id === 'acc_cash') accountLabel = 'Cash A/c';
-                                else if (e.account_id === 'acc_bank') accountLabel = 'Bank A/c';
-                                else if (e.account_id === 'acc_sales') accountLabel = 'Sales Revenue A/c';
-                                else if (e.account_id === 'acc_opening_balance') accountLabel = 'Opening Balance Equity A/c';
-                                else if (selectedAgent && e.account_id === selectedAgent.account_id) {
-                                  accountLabel = `${selectedAgent.name} (Agent A/c)`;
-                                }
-
-                                return (
-                                  <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                    <td className="px-3.5 py-2 font-medium text-slate-800 dark:text-slate-200">
-                                      {accountLabel}
-                                      <div className="text-[10px] text-slate-400 font-normal">{e.narration}</div>
-                                    </td>
-                                    <td className="px-3.5 py-2 text-right font-mono font-semibold text-amber-600 dark:text-amber-400">
-                                      {e.debit > 0 ? formatNumber(e.debit) : '—'}
-                                    </td>
-                                    <td className="px-3.5 py-2 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                                      {e.credit > 0 ? formatNumber(e.credit) : '—'}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Actions Footer */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                      <Button
-                        variant="outline"
-                        onClick={() => setSelectedVoucherRow(null)}
-                        className="w-full sm:w-auto"
-                      >
-                        Close
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          triggerHaptic('selection');
-                          router.push(drillTarget.url);
-                        }}
-                        className="w-full sm:w-auto"
-                      >
-                        <span>{drillTarget.actionLabel}</span>
-                        <ArrowUpRight className="h-4 w-4 ml-1.5" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })()}
-            </DialogContent>
-          </Dialog>
 
           {/* Off-screen dedicated full-width container for WhatsApp image export (no scrollbars, full desktop layout) */}
           <div
