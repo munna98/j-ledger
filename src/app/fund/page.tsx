@@ -270,17 +270,11 @@ export default function FundPage() {
           </div>
         </div>
 
-        {currency === 'INR' && (
+        {currency === 'INR' && weightedAvgRate > 0 && (
           <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-medium border border-emerald-200/60 dark:border-emerald-800/60">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Cumulative by fund entry rates</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+              (Weighted Avg: ₹{formatExpense(weightedAvgRate)}/FC)
             </span>
-            {weightedAvgRate > 0 && (
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                (Weighted Avg: ₹{formatExpense(weightedAvgRate)}/FC)
-              </span>
-            )}
           </div>
         )}
       </div>
@@ -295,7 +289,6 @@ export default function FundPage() {
               : formatExpense(stats.totalFunded)
           }
           subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.totalFunded)} FC` : undefined}
-          badge={currency === 'INR' ? 'Cumulative' : undefined}
           icon={currency === 'INR' ? IndianRupee : DollarSign}
           variant="blue"
         />
@@ -307,7 +300,6 @@ export default function FundPage() {
               : formatExpense(stats.totalFundCost)
           }
           subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.totalFundCost)} FC` : undefined}
-          badge={currency === 'INR' ? 'Cumulative' : undefined}
           icon={ArrowDownRight}
           variant="amber"
         />
@@ -319,7 +311,6 @@ export default function FundPage() {
               : formatExpense(stats.remainingFund)
           }
           subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.remainingFund)} FC` : undefined}
-          badge={currency === 'INR' ? 'Cumulative' : undefined}
           icon={PieChart}
           variant={
             (currency === 'INR' ? stats.remainingFundINR < 0 : stats.remainingFund < 0)
@@ -335,7 +326,6 @@ export default function FundPage() {
               : formatExpense(stats.totalProfit)
           }
           subtitle={currency === 'INR' ? `Original: ${formatExpense(stats.totalProfit)} FC` : undefined}
-          badge={currency === 'INR' ? 'Cumulative' : undefined}
           icon={TrendingUp}
           variant={
             (currency === 'INR' ? stats.totalProfitINR >= 0 : stats.totalProfit >= 0)
