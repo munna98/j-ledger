@@ -388,13 +388,15 @@ export default function FundPage() {
                       {fund.qty}
                     </td>
                     <td className="px-4 py-4 text-right font-mono text-slate-700 dark:text-slate-300">
-                      <div>{formatExpense(fund.rate)}</div>
-                      <div className="text-[10px] text-slate-400 font-normal">
-                        +exp {formatExpense(computeFundExpense(fund.qty, fund.rate))}
-                      </div>
+                      {formatExpense(fund.rate)}
                     </td>
-                    <td className="px-4 py-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {formatExpense(fund.amount)}
+                    <td className="px-4 py-4 text-right font-mono">
+                      <div className="font-bold text-emerald-600 dark:text-emerald-400">
+                        {formatExpense(fund.amount)}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-normal">
+                        exp {formatExpense(computeFundExpense(fund.qty, fund.rate))}
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-slate-600 dark:text-slate-400 text-xs">
                       {fund.note || <span className="text-slate-400 italic">—</span>}
@@ -471,14 +473,14 @@ export default function FundPage() {
                     <div className="font-mono text-sm text-slate-900 dark:text-white">
                       {formatExpense(fund.rate)}
                     </div>
-                    <div className="text-[10px] text-slate-400 font-normal">
-                      +exp {formatExpense(computeFundExpense(fund.qty, fund.rate))}
-                    </div>
                   </div>
                   <div>
                     <div className="text-[10px] text-slate-400 uppercase font-semibold">Amount</div>
                     <div className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
                       {formatExpense(fund.amount)}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-normal">
+                      exp {formatExpense(computeFundExpense(fund.qty, fund.rate))}
                     </div>
                   </div>
                 </div>
