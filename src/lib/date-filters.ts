@@ -2,6 +2,7 @@ export type DateFilterPreset =
   | 'all'
   | 'today'
   | 'yesterday'
+  | 'last2'
   | 'last7'
   | 'this_month'
   | 'last_month'
@@ -19,6 +20,7 @@ export const DATE_FILTER_PRESETS: ReadonlyArray<{
 }> = [
   { id: 'today', label: 'Today' },
   { id: 'yesterday', label: 'Yesterday' },
+  { id: 'last2', label: 'Last 2 Days' },
   { id: 'last7', label: 'Last 7 Days' },
   { id: 'this_month', label: 'This Month' },
   { id: 'last_month', label: 'Last Month' },
@@ -58,6 +60,14 @@ export function getDateRangeForPreset(
       );
       const yesterdayStr = formatLocalDateISO(yesterday);
       return { fromDate: yesterdayStr, toDate: yesterdayStr };
+    }
+    case 'last2': {
+      const past = new Date(
+        baseDate.getFullYear(),
+        baseDate.getMonth(),
+        baseDate.getDate() - 2
+      );
+      return { fromDate: formatLocalDateISO(past), toDate: todayStr };
     }
     case 'last7': {
       const past = new Date(
