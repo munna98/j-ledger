@@ -804,13 +804,13 @@ function StatementContent() {
                     </div>
 
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-50 dark:border-slate-800/60">
-                      <div className="text-slate-500 dark:text-slate-400 font-mono">
+                      <div className="font-mono">
                         {row.qty !== undefined && row.qty > 0 ? (
-                          <span>
+                          <span className="text-slate-900 dark:text-white">
                             {row.qty} units {row.rate ? `@ ${formatNumber(row.rate)}` : ''}
                           </span>
                         ) : (
-                          <span className="text-slate-400 italic">Financial Entry</span>
+                          <span className="text-slate-400 dark:text-slate-500 italic">Financial Entry</span>
                         )}
                       </div>
                       <div className="flex items-center gap-1 font-mono text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md">
@@ -953,7 +953,7 @@ function StatementContent() {
                         <td className="px-4 py-2.5 text-right font-mono text-slate-900 dark:text-white">
                           {row.qty !== undefined && row.qty > 0 ? row.qty : '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-right font-mono text-slate-700 dark:text-slate-300">
+                        <td className="px-4 py-2.5 text-right font-mono text-slate-900 dark:text-white">
                           {row.rate !== undefined && row.rate > 0 ? formatNumber(row.rate) : '—'}
                         </td>
                         <td className="px-4 py-2.5 text-right font-mono font-semibold text-amber-600 dark:text-amber-400">
@@ -1091,35 +1091,35 @@ function StatementContent() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
                     <tr>
-                      <th className="pl-4 pr-2 py-2 w-24">Date</th>
-                      <th className="px-2 py-2 w-20">Type</th>
-                      <th className="px-3 py-2">Particulars / Details</th>
-                      <th className="px-2 py-2 text-right w-14">Qty</th>
-                      <th className="px-2 py-2 text-right w-20">Rate</th>
-                      <th className="px-2 py-2 text-right w-24">Debit</th>
-                      <th className="px-2 py-2 text-right w-24">Credit</th>
-                      <th className="pl-2 pr-4 py-2 text-right w-32">Running Balance</th>
+                      <th className="pl-4 pr-2 py-1.5 w-24">Date</th>
+                      <th className="px-2 py-1.5 w-20">Type</th>
+                      <th className="px-3 py-1.5">Particulars / Details</th>
+                      <th className="px-2 py-1.5 text-right w-14">Qty</th>
+                      <th className="px-2 py-1.5 text-right w-20">Rate</th>
+                      <th className="px-2 py-1.5 text-right w-24">Debit</th>
+                      <th className="px-2 py-1.5 text-right w-24">Credit</th>
+                      <th className="pl-2 pr-4 py-1.5 text-right w-32">Running Balance</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-150 bg-white">
                     {/* First Row: Opening Balance */}
                     <tr className="bg-slate-50/60 font-medium">
-                      <td className="pl-4 pr-2 py-2 font-mono text-[11px] text-slate-600">
+                      <td className="pl-4 pr-2 py-1 font-mono text-[11px] text-slate-600">
                         {fromDate ? formatDate(fromDate) : '—'}
                       </td>
-                      <td className="px-2 py-2">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                      <td className="px-2 py-1">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 leading-tight">
                           Opening
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-slate-800 font-medium italic text-xs">
+                      <td className="px-3 py-1 text-slate-800 font-medium italic text-xs leading-tight">
                         Brought Forward Opening Balance
                       </td>
-                      <td className="px-2 py-2 text-right font-mono text-slate-400 text-xs">—</td>
-                      <td className="px-2 py-2 text-right font-mono text-slate-400 text-xs">—</td>
-                      <td className="px-2 py-2 text-right font-mono text-slate-400 text-xs">—</td>
-                      <td className="px-2 py-2 text-right font-mono text-slate-400 text-xs">—</td>
-                      <td className="pl-2 pr-4 py-2 text-right font-mono font-bold text-slate-900 text-xs">
+                      <td className="px-2 py-1 text-right font-mono text-slate-400 text-xs">—</td>
+                      <td className="px-2 py-1 text-right font-mono text-slate-400 text-xs">—</td>
+                      <td className="px-2 py-1 text-right font-mono text-slate-400 text-xs">—</td>
+                      <td className="px-2 py-1 text-right font-mono text-slate-400 text-xs">—</td>
+                      <td className="pl-2 pr-4 py-1 text-right font-mono font-bold text-slate-900 text-xs">
                         {formatNumber(statement.openingBalance.amount)}
                         {statement.openingBalance.type && (
                           <span className="ml-1 text-[11px] text-slate-600 font-semibold">
@@ -1148,31 +1148,31 @@ function StatementContent() {
 
                       return (
                         <tr key={index} className={rowBg}>
-                          <td className="pl-4 pr-2 py-2 font-mono text-[11px] text-slate-700">
+                          <td className="pl-4 pr-2 py-1 font-mono text-[11px] text-slate-700">
                             {formatDate(row.date)}
                           </td>
-                          <td className="px-2 py-2">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${badgeClass}`}>
+                          <td className="px-2 py-1">
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${badgeClass} leading-tight`}>
                               <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dotColor}`} />
                               {row.type || 'Entry'}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-slate-900 font-semibold text-xs leading-snug">
+                          <td className="px-3 py-1 text-slate-900 font-semibold text-xs leading-tight">
                             {row.particulars}
                           </td>
-                          <td className="px-2 py-2 text-right font-mono text-slate-900 text-xs">
+                          <td className="px-2 py-1 text-right font-mono text-slate-900 text-xs">
                             {row.qty !== undefined && row.qty > 0 ? row.qty : '—'}
                           </td>
-                          <td className="px-2 py-2 text-right font-mono text-slate-700 text-xs">
+                          <td className="px-2 py-1 text-right font-mono text-slate-900 text-xs">
                             {row.rate !== undefined && row.rate > 0 ? formatNumber(row.rate) : '—'}
                           </td>
-                          <td className="px-2 py-2 text-right font-mono font-bold text-amber-700 text-xs">
+                          <td className="px-2 py-1 text-right font-mono font-bold text-amber-700 text-xs">
                             {row.debit > 0 ? formatNumber(row.debit) : '—'}
                           </td>
-                          <td className="px-2 py-2 text-right font-mono font-bold text-emerald-700 text-xs">
+                          <td className="px-2 py-1 text-right font-mono font-bold text-emerald-700 text-xs">
                             {row.credit > 0 ? formatNumber(row.credit) : '—'}
                           </td>
-                          <td className="pl-2 pr-4 py-2 text-right font-mono font-bold text-slate-900 text-xs">
+                          <td className="pl-2 pr-4 py-1 text-right font-mono font-bold text-slate-900 text-xs">
                             {formatNumber(row.balance)}
                             {row.balanceType && (
                               <span
@@ -1192,7 +1192,7 @@ function StatementContent() {
 
                     {statement.rows.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="px-6 py-8 text-center text-slate-400 italic bg-white text-xs">
+                        <td colSpan={8} className="px-6 py-6 text-center text-slate-400 italic bg-white text-xs">
                           No transactions found for the selected period.
                         </td>
                       </tr>
@@ -1202,18 +1202,18 @@ function StatementContent() {
                   {/* Totals Row */}
                   <tfoot className="bg-slate-100/90 font-bold border-t-2 border-slate-300 text-slate-900">
                     <tr>
-                      <td className="pl-4 pr-2 py-2.5 font-mono text-[11px]">TOTALS</td>
-                      <td className="px-2 py-2.5 text-slate-400">—</td>
-                      <td className="px-3 py-2.5 text-xs text-slate-800">Total Period Activity & Net Closing</td>
-                      <td className="px-2 py-2.5 text-right font-mono text-slate-400">—</td>
-                      <td className="px-2 py-2.5 text-right font-mono text-slate-400">—</td>
-                      <td className="px-2 py-2.5 text-right font-mono text-xs font-bold text-amber-700">
+                      <td className="pl-4 pr-2 py-1.5 font-mono text-[11px]">TOTALS</td>
+                      <td className="px-2 py-1.5 text-slate-400">—</td>
+                      <td className="px-3 py-1.5 text-xs text-slate-800">Total Period Activity & Net Closing</td>
+                      <td className="px-2 py-1.5 text-right font-mono text-slate-400">—</td>
+                      <td className="px-2 py-1.5 text-right font-mono text-slate-400">—</td>
+                      <td className="px-2 py-1.5 text-right font-mono text-xs font-bold text-amber-700">
                         {formatNumber(statement.totalDebit)}
                       </td>
-                      <td className="px-2 py-2.5 text-right font-mono text-xs font-bold text-emerald-700">
+                      <td className="px-2 py-1.5 text-right font-mono text-xs font-bold text-emerald-700">
                         {formatNumber(statement.totalCredit)}
                       </td>
-                      <td className="pl-2 pr-4 py-2.5 text-right font-mono text-xs font-bold text-indigo-700">
+                      <td className="pl-2 pr-4 py-1.5 text-right font-mono text-xs font-bold text-indigo-700">
                         {formatNumber(statement.closingBalance.amount)}
                         {statement.closingBalance.type && (
                           <span className="ml-1 text-[11px] font-bold text-indigo-700">
